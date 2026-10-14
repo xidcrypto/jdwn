@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — jwplyr Extractor</title>
+<style>
+  :root { --bg:#0f1115; --card:#171a21; --border:#262b36; --txt:#e8eaf0; --muted:#9aa1b2; --acc:#4f8cff; --ok:#34c77b; --err:#ff5d5d; --warn:#ffb020; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; min-height:100vh; }
+  .wrap { max-width:960px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { font-size:22px; margin-bottom:4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:20px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px; margin-bottom:16px; }
+  .card h2 { font-size:15px; margin-bottom:12px; }
+  label { display:block; font-size:12px; color:var(--muted); margin:10px 0 4px; }
+  input[type=text], input[type=password], textarea { width:100%; background:#0d0f14; border:1px solid var(--border); color:var(--txt); border-radius:8px; padding:10px 12px; font-size:14px; }
+  textarea { min-height:110px; font-family:ui-monospace,monospace; font-size:12px; resize:vertical; }
+  input:focus, textarea:focus { outline:none; border-color:var(--acc); }
+  button { background:var(--acc); color:#fff; border:none; border-radius:8px; padding:10px 16px; font-size:14px; cursor:pointer; }
+  button:hover { filter:brightness(1.1); }
+  button.ghost { background:transparent; border:1px solid var(--border); color:var(--txt); }
+  button.danger { background:transparent; border:1px solid var(--err); color:var(--err); }
+  button.small { padding:6px 10px; font-size:12px; }
+  button:disabled { opacity:.5; cursor:wait; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .msg { margin-top:10px; font-size:13px; padding:10px 12px; border-radius:8px; display:none; }
+  .msg.ok { display:block; background:rgba(52,199,123,.12); color:var(--ok); border:1px solid rgba(52,199,123,.3); }
+  .msg.err { display:block; background:rgba(255,93,93,.12); color:var(--err); border:1px solid rgba(255,93,93,.3); }
+  .tabs { display:flex; gap:8px; margin-bottom:16px; }
+  .tabs button { background:transparent; border:1px solid var(--border); color:var(--muted); }
+  .tabs button.active { background:var(--acc); color:#fff; border-color:var(--acc); }
+  .hidden { display:none !important; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  th { color:var(--muted); font-weight:600; font-size:12px; }
+  td.mono { font-family:ui-monospace,monospace; font-size:12px; word-break:break-all; }
+  .badge { display:inline-block; font-size:11px; padding:3px 8px; border-radius:20px; }
+  .badge.on { background:rgba(52,199,123,.15); color:var(--ok); }
+  .badge.off { background:rgba(255,176,32,.15); color:var(--warn); }
+  .badge.bad { background:rgba(255,93,93,.15); color:var(--err); }
+  .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .stat { display:flex; gap:16px; margin-bottom:16px; }
+  .stat .card { flex:1; text-align:center; margin-bottom:0; padding:14px; }
+  .stat .num { font-size:26px; font-weight:700; }
+  .stat .lbl { font-size:12px; color:var(--muted); }
+  video { width:100%; max-height:420px; border-radius:8px; background:#000; margin-top:12px; }
+  .kv { font-size:13px; margin:6px 0; word-break:break-all; }
+  .kv b { color:var(--muted); font-weight:600; }
+  a { color:var(--acc); }
+  #loginBox { max-width:380px; margin:80px auto 0; }
+  .center { text-align:center; }
+  @media (max-width:640px){ .row .grow{flex:1 1 100%;} th:nth-child(4), td:nth-child(4){display:none;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- LOGIN -->
+  <div id="loginBox" class="card">
+    <h1>🔐 Admin Login</h1>
+    <p class="sub">jwplyr Extractor Backend</p>
+    <label>Username</label>
+    <input type="text" id="liUser" autocomplete="username" placeholder="admin">
+    <label>Password</label>
+    <input type="password" id="liPass" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    <div style="margin-top:14px"><button id="liBtn" onclick="doLogin()" style="width:100%">Masuk</button></div>
+    <div id="liMsg" class="msg"></div>
+  </div>
+
+  <!-- APP -->
+  <div id="app" class="hidden">
+    <div class="topbar">
+      <div><h1>🎬 jwplyr Extractor</h1><p class="sub" id="helloLine"></p></div>
+      <button class="ghost small" onclick="doLogout()">Keluar</button>
+    </div>
+
+    <div class="tabs">
+      <button id="tabBtnProxies" class="active" onclick="showTab('proxies')">Proxy</button>
+      <button id="tabBtnExtract" onclick="showTab('extract')">Extract</button>
+      <button id="tabBtnSettings" onclick="showTab('settings')">Pengaturan</button>
+    </div>
+
+    <!-- PROXIES -->
+    <div id="tab-proxies">
+      <div class="stat">
+        <div class="card"><div class="num" id="stTotal">0</div><div class="lbl">Total proxy</div></div>
+        <div class="card"><div class="num" id="stActive">0</div><div class="lbl">Aktif</div></div>
+        <div class="card"><div class="num" id="stFail">0</div><div class="lbl">Gagal (fail count)</div></div>
+      </div>
+      <div class="card">
+        <h2>Tambah proxy</h2>
+        <div class="row">
+          <input type="text" id="pxOne" class="grow" style="flex:1" placeholder="http://user:pass@host:port  (awalan http:// boleh dihilangkan)">
+          <button onclick="addOne()">Tambah</button>
+        </div>
+        <label>Bulk — satu proxy per baris</label>
+        <textarea id="pxBulk" placeholder="http://user1:pass1@host1:3128&#10;socks5h://user2:pass2@host2:1080&#10;host3:8080"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button onclick="addBulk()">Tambah bulk</button>
+          <span class="sub" id="bulkInfo" style="margin:0"></span>
+        </div>
+        <div id="pxMsg" class="msg"></div>
+      </div>
+      <div class="card">
+        <h2>Proxy gratis (auto-scrape)</h2>
+        <p class="sub" style="margin-top:0">Mengambil daftar proxy HTTP gratis dari sumber publik lalu menyimpannya ke database (duplikat otomatis dilewati). Kualitasnya campur aduk — jalankan <b>Uji massal</b> setelahnya untuk menonaktifkan yang mati.</p>
+        <div class="row" style="flex-wrap:wrap;gap:8px">
+          <button onclick="scrapeNow()">🌐 Scrape sekarang</button>
+          <button class="ghost" onclick="testAll()">⚡ Uji massal (nonaktifkan yg gagal)</button>
+          <button class="ghost" onclick="pruneDead()">🧹 Hapus proxy gagal ≥5x</button>
+          <span class="sub" id="scrapeInfo" style="margin:0"></span>
+        </div>
+        <div id="scrapeMsg" class="msg"></div>
+      </div>
+      <div class="card">
+        <h2>Daftar proxy <button class="ghost small" style="float:right" onclick="loadProxies()">🔄 Muat ulang</button></h2>
+        <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>#</th><th>Proxy</th><th>Sumber</th><th>Status</th><th>Fail</th><th>Tes terakhir</th><th>Aksi</th></tr></thead>
+          <tbody id="pxRows"><tr><td colspan="7" class="center" style="color:var(--muted)">Memuat...</td></tr></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXTRACT -->
+    <div id="tab-extract" class="hidden">
+      <div class="card">
+        <h2>Extract URL video</h2>
+        <div class="row">
+          <input type="text" id="exUrl" class="grow" style="flex:1" placeholder="https://jwplyr.com/e/xxxx">
+          <button id="exBtn" onclick="doExtract()">Extract</button>
+        </div>
+        <div id="exMsg" class="msg"></div>
+        <div id="exResult" class="hidden" style="margin-top:12px">
+          <div class="kv"><b>Judul:</b> <span id="exTitle"></span></div>
+          <div class="kv"><b>Video ID:</b> <span id="exId"></span></div>
+          <div class="kv"><b>Proxy:</b> <span id="exProxy"></span></div>
+          <div class="kv"><b>Kedaluwarsa:</b> <span id="exExp"></span></div>
+          <div class="kv"><b>URL video:</b><br><code id="exVideoUrl" style="font-size:11px"></code></div>
+          <div class="row" style="margin-top:10px">
+            <button class="ghost small" onclick="copyVideoUrl()">📋 Salin URL</button>
+            <a id="exDl" href="#"><button class="small">⬇ Download MP4</button></a>
+          </div>
+          <video id="exPlayer" controls playsinline></video>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="tab-settings" class="hidden">
+      <div class="card">
+        <h2>Ganti password admin</h2>
+        <label>Password lama</label>
+        <input type="password" id="pwOld" autocomplete="current-password">
+        <label>Password baru (min. 6 karakter)</label>
+        <input type="password" id="pwNew" autocomplete="new-password">
+        <div style="margin-top:12px"><button onclick="changePw()">Simpan password baru</button></div>
+        <div id="pwMsg" class="msg"></div>
+        <p class="sub" style="margin-top:10px">Setelah ganti password, semua sesi login (termasuk perangkat ini) akan dihapus dan harus login ulang.</p>
+      </div>
+      <div class="card">
+        <h2>Info server</h2>
+        <div class="kv"><b>Endpoint extract:</b> <code>POST /api/extract</code> dengan header <code>Authorization: Bearer &lt;token&gt;</code></div>
+        <div class="kv"><b>Endpoint download:</b> <code>GET /api/download?url=&lt;embed&gt;&amp;token=&lt;token&gt;</code></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const api = async (path, opts = {}) => {
+  const r = await fetch(path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': 'Bearer ' + token } : {}), ...(opts.headers || {}) },
+  });
+  let data = {};
+  try { data = await r.json(); } catch {}
+  if (r.status === 401) { logoutLocal(); throw new Error('Sesi habis, silakan login ulang'); }
+  if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
+  return data;
+};
+let token = localStorage.getItem('jw_token') || '';
+let lastVideoUrl = '';
+
+function msg(el, text, ok) {
+  const e = $(el);
+  e.textContent = text;
+  e.className = 'msg ' + (ok ? 'ok' : 'err');
+  if (ok) setTimeout(() => { e.className = 'msg'; e.textContent = ''; }, 4000);
+}
+function logoutLocal() {
+  token = ''; localStorage.removeItem('jw_token');
+  $('app').classList.add('hidden'); $('loginBox').classList.remove('hidden');
+}
+
+// ---- login ----
+async function doLogin() {
+  const btn = $('liBtn'); btn.disabled = true;
+  try {
+    const d = await api('/api/login', { method: 'POST', body: JSON.stringify({ username: $('liUser').value.trim(), password: $('liPass').value }) });
+    token = d.token; localStorage.setItem('jw_token', token);
+    $('loginBox').classList.add('hidden'); $('app').classList.remove('hidden');
+    $('helloLine').textContent = 'Login sebagai ' + d.username;
+    $('liPass').value = '';
+    loadProxies();
+  } catch (e) { msg('liMsg', e.message, false); }
+  btn.disabled = false;
+}
+async function doLogout() {
+  try { await api('/api/logout', { method: 'POST' }); } catch {}
+  logoutLocal();
+}
+function showTab(name) {
+  for (const t of ['proxies', 'extract', 'settings']) {
+    $('tab-' + t).classList.toggle('hidden', t !== name);
+    $('tabBtn' + t[0].toUpperCase() + t.slice(1)).classList.toggle('active', t === name);
+  }
+}
+
+// ---- proxies ----
+async function loadProxies() {
+  try {
+    const rows = await api('/api/proxies');
+    const tb = $('pxRows');
+    $('stTotal').textContent = rows.length;
+    $('stActive').textContent = rows.filter((r) => r.enabled).length;
+    $('stFail').textContent = rows.reduce((a, r) => a + (r.failCount || 0), 0);
+    if (!rows.length) { tb.innerHTML = '<tr><td colspan="7" class="center" style="color:var(--muted)">Belum ada proxy. Tambahkan di atas.</td></tr>'; return; }
+    tb.innerHTML = rows.map((r) => `
+      <tr>
+        <td>${r.id}</td>
+        <td class="mono">${escapeHtml(r.proxy)}</td>
+        <td style="font-size:11px;color:var(--muted)">${r.source === 'scrape' ? '🌐 gratis' : '✍️ manual'}</td>
+        <td>${r.enabled ? '<span class="badge on">aktif</span>' : '<span class="badge off">nonaktif</span>'}
+            ${r.lastTestOk === true ? '<span class="badge on">tes ok</span>' : r.lastTestOk === false ? '<span class="badge bad">tes gagal</span>' : ''}</td>
+        <td>${r.failCount || 0}</td>
+        <td style="font-size:11px;color:var(--muted)">${r.lastTestAt ? escapeHtml(r.lastTestAt.replace('T', ' ').slice(0, 19)) : '-'}</td>
+        <td><div class="row" style="gap:4px;flex-wrap:nowrap">
+          <button class="ghost small" onclick="testProxy(${r.id}, this)">tes</button>
+          <button class="ghost small" onclick="toggleProxy(${r.id}, ${r.enabled ? 0 : 1})">${r.enabled ? 'off' : 'on'}</button>
+          <button class="danger small" onclick="delProxy(${r.id})">hapus</button>
+        </div></td>
+      </tr>`).join('');
+  } catch (e) { $('pxRows').innerHTML = '<tr><td colspan="7" class="center" style="color:var(--err)">' + escapeHtml(e.message) + '</td></tr>'; }
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+async function addOne() {
+  const v = $('pxOne').value.trim();
+  if (!v) return msg('pxMsg', 'Isi dulu alamat proxy-nya', false);
+  try {
+    await api('/api/proxies', { method: 'POST', body: JSON.stringify({ proxy: v }) });
+    $('pxOne').value = '';
+    msg('pxMsg', 'Proxy ditambahkan', true);
+    loadProxies();
+  } catch (e) { msg('pxMsg', e.message, false); }
+}
+async function addBulk() {
+  const text = $('pxBulk').value;
+  if (!text.trim()) return msg('pxMsg', 'Textarea bulk masih kosong', false);
+  $('bulkInfo').textContent = 'memproses...';
+  try {
+    const d = await api('/api/proxies/bulk', { method: 'POST', body: JSON.stringify({ text }) });
+    $('pxBulk').value = '';
+    $('bulkInfo').textContent = '';
+    msg('pxMsg', `Bulk selesai: ${d.added} ditambahkan, ${d.skipped} dilewati/duplikat (dari ${d.total} baris)`, true);
+    loadProxies();
+  } catch (e) { $('bulkInfo').textContent = ''; msg('pxMsg', e.message, false); }
+}
+async function scrapeNow() {
+  $('scrapeInfo').textContent = 'mengambil dari sumber publik...';
+  try {
+    const d = await api('/api/proxies/scrape', { method: 'POST', body: '{}' });
+    $('scrapeInfo').textContent = '';
+    const src = (d.perSource || []).map((s) => s.ok ? `${s.count} ok` : 'gagal').join(', ');
+    msg('scrapeMsg', `Scrape selesai: ${d.added} baru ditambahkan, ${d.skipped} duplikat (dari ${d.total} ditemukan) — [${src}]`, true);
+    loadProxies();
+  } catch (e) { $('scrapeInfo').textContent = ''; msg('scrapeMsg', e.message, false); }
+}
+async function testAll() {
+  if (!confirm('Uji semua proxy aktif? Proxy yang gagal akan dinonaktifkan. Bisa butuh beberapa menit untuk ratusan proxy.')) return;
+  $('scrapeInfo').textContent = 'menguji... (jangan tutup halaman)';
+  try {
+    const d = await api('/api/proxies/test-all', { method: 'POST', body: JSON.stringify({ limit: 500, concurrency: 10 }) });
+    $('scrapeInfo').textContent = '';
+    msg('scrapeMsg', `Uji massal selesai: ${d.tested} diuji — ${d.ok} OK, ${d.failed} gagal (dinonaktifkan)`, true);
+    loadProxies();
+  } catch (e) { $('scrapeInfo').textContent = ''; msg('scrapeMsg', e.message, false); }
+}
+async function pruneDead() {
+  if (!confirm('Hapus proxy hasil scrape yang gagal ≥5x?')) return;
+  try {
+    const d = await api('/api/proxies/prune', { method: 'POST', body: JSON.stringify({ minFail: 5, onlyScraped: true }) });
+    msg('scrapeMsg', `${d.deleted} proxy mati dihapus`, true);
+    loadProxies();
+  } catch (e) { msg('scrapeMsg', e.message, false); }
+}
+async function delProxy(id) {
+  if (!confirm('Hapus proxy #' + id + '?')) return;
+  try { await api('/api/proxies/' + id, { method: 'DELETE' }); loadProxies(); }
+  catch (e) { msg('pxMsg', e.message, false); }
+}
+async function toggleProxy(id, enabled) {
+  try { await api('/api/proxies/' + id, { method: 'PATCH', body: JSON.stringify({ enabled: !!enabled }) }); loadProxies(); }
+  catch (e) { msg('pxMsg', e.message, false); }
+}
+async function testProxy(id, btn) {
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    const d = await api('/api/proxies/' + id + '/test', { method: 'POST' });
+    msg('pxMsg', d.ok ? `Proxy #${id} OK (${d.ms} ms, HTTP ${d.status})` : `Proxy #${id} gagal: ${d.error || 'unknown'}`, d.ok);
+    loadProxies();
+  } catch (e) { msg('pxMsg', e.message, false); btn.disabled = false; btn.textContent = 'tes'; }
+}
+
+// ---- extract ----
+async function doExtract() {
+  const url = $('exUrl').value.trim();
+  if (!/^https?:\/\//i.test(url)) return msg('exMsg', 'Isi URL embed jwplyr yang valid', false);
+  const btn = $('exBtn'); btn.disabled = true; btn.textContent = 'Memproses...';
+  $('exResult').classList.add('hidden');
+  try {
+    const d = await api('/api/extract', { method: 'POST', body: JSON.stringify({ url }) });
+    lastVideoUrl = d.videoUrl;
+    $('exTitle').textContent = d.title || '-';
+    $('exId').textContent = d.videoId || '-';
+    $('exProxy').textContent = (d.proxyId ? '#' + d.proxyId + ' ' : '') + (d.proxy || '-');
+    $('exExp').textContent = d.expiresAt ? new Date(d.expiresAt).toLocaleString('id-ID') : '-';
+    $('exVideoUrl').textContent = d.videoUrl;
+    const dlUrl = '/api/download?url=' + encodeURIComponent(url) + '&token=' + encodeURIComponent(token) + '&download=1';
+    $('exDl').href = dlUrl;
+    const player = $('exPlayer');
+    player.src = '/api/download?url=' + encodeURIComponent(url) + '&token=' + encodeURIComponent(token);
+    player.load();
+    $('exResult').classList.remove('hidden');
+    msg('exMsg', 'Berhasil', true);
+  } catch (e) { msg('exMsg', e.message, false); }
+  btn.disabled = false; btn.textContent = 'Extract';
+}
+function copyVideoUrl() {
+  navigator.clipboard.writeText(lastVideoUrl).then(
+    () => msg('exMsg', 'URL video disalin', true),
+    () => msg('exMsg', 'Gagal menyalin', false)
+  );
+}
+
+// ---- settings ----
+async function changePw() {
+  try {
+    await api('/api/change-password', { method: 'POST', body: JSON.stringify({ oldPassword: $('pwOld').value, newPassword: $('pwNew').value }) });
+    msg('pwMsg', 'Password diganti. Silakan login ulang.', true);
+    setTimeout(doLogout, 1500);
+  } catch (e) { msg('pwMsg', e.message, false); }
+}
+
+// init
+if (token) {
+  $('loginBox').classList.add('hidden'); $('app').classList.remove('hidden');
+  api('/api/me').then((d) => { $('helloLine').textContent = 'Login sebagai ' + d.username; }).catch(() => logoutLocal());
+  loadProxies();
+}
+</script>
+</body>
+</html>
