@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   CheckCircle2,
   CircleAlert,
+  ClipboardPaste,
   Clock,
   Download,
   Film,
@@ -16,6 +17,7 @@ import {
   Play,
   ShieldCheck,
   Sparkles,
+  X,
   Wand2,
   Zap,
 } from 'lucide-react';
@@ -114,6 +116,19 @@ export default function PublicApp() {
     setShowPlayer(false);
   };
 
+  const pasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && text.trim()) {
+        setUrl(text.trim());
+        setError('');
+        setVpnBlocked(false);
+      }
+    } catch {
+      setError('Tidak bisa membaca clipboard. Tekan lama di kolom lalu pilih "Tempel".');
+    }
+  };
+
   const siteName = cfg?.siteName || 'jwplyr Extractor';
   const showAds = cfg?.adsEnabled === true;
   const smartlinkOnDownload = cfg?.smartlinkEnabled === true && cfg?.smartlinkDownload === true;
@@ -145,6 +160,7 @@ export default function PublicApp() {
   return (
     <div className="pub">
       <DevGuard enabled={cfg?.devGuardEnabled === true} />
+      <div className="pub-grid" aria-hidden="true" />
       <header className="pub-header">
         <div className="brand">
           <div className="brand-mark">
@@ -178,30 +194,58 @@ export default function PublicApp() {
             Tempel tautan video di bawah, lalu unduh videonya dalam kualitas terbaik langsung ke
             perangkatmu. Tanpa watermark, tanpa aplikasi.
           </p>
+          <div className="hero-sources fade-in d2">
+            <span className="live-dot" aria-hidden="true" />
+            Mendukung <b>{domainHint}</b>
+          </div>
         </section>
 
         <section className="dl-card scale-in d1">
-          <div className="dl-form">
+          <form
+            className="dl-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+          >
             <div className="dl-input-wrap">
               <Link2 className="dl-icon" size={19} />
               <input
                 className="dl-input"
                 type="url"
                 inputMode="url"
+                enterKeyHint="go"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
                 value={url}
                 disabled={disabled}
                 placeholder={`Tempel URL di sini, contoh: https://${sample}/e/xxxx`}
                 onChange={(e) => setUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') submit();
-                }}
               />
+              {url && !disabled ? (
+                <button
+                  type="button"
+                  className="dl-clear"
+                  onClick={() => setUrl('')}
+                  aria-label="Bersihkan"
+                >
+                  <X size={16} />
+                </button>
+              ) : null}
+              {!url && !disabled ? (
+                <button type="button" className="dl-paste" onClick={pasteFromClipboard}>
+                  <ClipboardPaste size={15} />
+                  <span>Tempel</span>
+                </button>
+              ) : null}
             </div>
-            <button className="btn dl-btn" onClick={submit} disabled={busy || disabled}>
+            <button className="btn dl-btn" type="submit" disabled={busy || disabled}>
               {busy ? <Loader2 className="spinner" size={18} /> : <Download size={18} />}
-              {busy ? 'Memproses…' : 'Download'}
+              <span>{busy ? 'Memproses…' : 'Download'}</span>
             </button>
-          </div>
+          </form>
 
           {disabled ? (
             <div className="field-error" style={{ justifyContent: 'center', marginTop: 14 }}>
@@ -245,16 +289,19 @@ export default function PublicApp() {
                   )}
                 </div>
                 <div className="result-info">
+                  <div className="result-badge">
+                    <CheckCircle2 size={13} /> Berhasil diekstrak
+                  </div>
                   <h3>{result.title || result.videoId}</h3>
                   <div className="result-meta">
-                    <span>
-                      <CheckCircle2 size={13} /> Berhasil diekstrak
-                    </span>
                     <span>
                       <Clock size={13} />
                       {result.expiresAt
                         ? 'Berlaku s/d ' + new Date(result.expiresAt).toLocaleString('id-ID')
                         : 'Tautan sementara'}
+                    </span>
+                    <span>
+                      <ShieldCheck size={13} /> Tanpa disimpan di server
                     </span>
                   </div>
                   <div className="result-actions">

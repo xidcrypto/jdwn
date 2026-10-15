@@ -26,6 +26,12 @@ export const metadata: Metadata = {
     'Unduh video dan audio dari berbagai platform dengan cepat, gratis, dan tanpa registrasi.',
   applicationName: 'jwplyr Extractor',
   keywords: ['video downloader', 'unduh video', 'download video', 'mp3', 'jwplyr'],
+  formatDetection: { telephone: false, email: false, address: false },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'jwplyr',
+  },
   openGraph: {
     type: 'website',
     siteName: 'jwplyr Extractor',
@@ -46,6 +52,7 @@ export const viewport: Viewport = {
   themeColor: '#0a0b10',
   width: 'device-width',
   initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
