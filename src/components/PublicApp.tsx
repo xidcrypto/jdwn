@@ -21,6 +21,7 @@ import {
 import AdSlot from './AdSlot';
 import DevGuard from './DevGuard';
 import SiteFooter from './SiteFooter';
+import { homeFaq } from '@/lib/seo';
 
 interface PublicResult {
   videoId: string;
@@ -325,7 +326,7 @@ export default function PublicApp() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={result.thumb}
-                    alt=""
+                    alt={result.title ? `Pratinjau: ${result.title}` : 'Pratinjau video'}
                     onLoad={(e) => {
                       const img = e.currentTarget;
                       setThumb(img.naturalHeight > img.naturalWidth ? 'portrait' : 'landscape');
@@ -466,48 +467,12 @@ export default function PublicApp() {
             <h2 className="lz-h2">Hal yang sering ditanyakan.</h2>
           </header>
           <div className="lz-qa">
-            <details open>
-              <summary>Apakah layanan ini berbayar?</summary>
-              <div className="lz-qa-body">
-                Tidak. Layanan ini sepenuhnya gratis dan dapat digunakan tanpa biaya tersembunyi.
-              </div>
-            </details>
-            <details>
-              <summary>Platform apa saja yang didukung?</summary>
-              <div className="lz-qa-body">
-                {ytOn ? (
-                  <>
-                    Kami mendukung <b>YouTube, TikTok, Instagram, X, dan Facebook</b>, serta ribuan
-                    situs lain. Cukup tempel tautan video secara lengkap.
-                  </>
-                ) : (
-                  <>
-                    Saat ini kami mendukung tautan dari <b>{domainHint}</b>. Tempel tautan videonya
-                    secara lengkap.
-                  </>
-                )}
-              </div>
-            </details>
-            <details>
-              <summary>Apakah saya perlu aplikasi atau akun?</summary>
-              <div className="lz-qa-body">
-                Tidak perlu. Cukup buka halaman ini, tempel tautan, lalu unduh. Tanpa pemasangan
-                aplikasi dan tanpa pendaftaran.
-              </div>
-            </details>
-            <details>
-              <summary>Apakah video saya disimpan di server?</summary>
-              <div className="lz-qa-body">
-                Tidak. Kami hanya meneruskan video ke perangkatmu dan tidak menyimpan berkasnya.
-              </div>
-            </details>
-            <details>
-              <summary>Mengapa unduhan kadang gagal?</summary>
-              <div className="lz-qa-body">
-                Tautan sumber bersifat sementara dan dapat kedaluwarsa. Jika gagal, tekan “Video
-                lain” lalu proses ulang untuk mendapatkan tautan yang baru.
-              </div>
-            </details>
+            {homeFaq({ ytdlpEnabled: ytOn, domainHint }).map((item, i) => (
+              <details key={item.q} open={i === 0}>
+                <summary>{item.q}</summary>
+                <div className="lz-qa-body">{item.a}</div>
+              </details>
+            ))}
           </div>
         </section>
       </main>

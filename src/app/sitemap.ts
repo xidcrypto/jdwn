@@ -6,7 +6,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return PUBLIC_PAGES.map((p) => ({
     url: `${SITE_URL}${p.path}`,
     lastModified: now,
-    changeFrequency: 'monthly',
-    priority: p.path === '/' ? 1 : 0.6,
+    changeFrequency: p.changeFrequency,
+    priority: p.priority,
   }));
 }
