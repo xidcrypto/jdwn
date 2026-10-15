@@ -1,0 +1,70 @@
+import { NextResponse } from 'next/server';
+import { extractWithFailover } from '@/lib/extractService';
+import { signPayload } from '@/lib/sign';
+import { getSettings, isUrlAllowed } from '@/lib/settings';
+import { recordExtract } from '@/lib/stats';
+
+export const runtime = 'nodejs';
+export const maxDuration = 120;
+
+const LINK_TTL_MS = 60 * 60 * 1000; // 1 jam
+
+export async function POST(req: Request) {
+  const { url } = (await req.json().catch(() => ({}))) as { url?: string };
+  const clean = String(url || '').trim();
+
+  const settings = await getSettings();
+
+  if (!settings.publicEnabled) {
+    return NextResponse.json(
+      { error: 'Layanan publik sedang dinonaktifkan oleh admin.' },
+      { status: 503 },
+    );
+  }
+
+  if (!clean || !/^https?:\/\//i.test(clean)) {
+    return NextResponse.json(
+      { error: 'Masukkan URL video yang valid (contoh: https://jwplyr.com/e/xxxx).' },
+      { status: 400 },
+    );
+  }
+  if (!isUrlAllowed(clean, settings)) {
+    const list = settings.allowedDomains.join(', ') || '-';
+    return NextResponse.json(
+      {
+        error: settings.allowAllDomains
+          ? 'URL tidak valid.'
+          : `Domain tidak didukung. Hanya: ${list}`,
+      },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const r = await extractWithFailover(clean);
+    await recordExtract(true, clean);
+    const referer = new URL(clean).origin + '/';
+    const token = signPayload(
+      { u: r.videoUrl, t: r.title || r.videoId, r: referer },
+      LINK_TTL_MS,
+    );
+    const base = '/api/public/download?token=' + encodeURIComponent(token);
+
+    return NextResponse.json({
+      ok: true,
+      videoId: r.videoId,
+      title: r.title,
+      thumb: r.thumb,
+      expiresAt: r.expiresAt,
+      streamUrl: base,
+      downloadUrl: base + '&download=1&name=' + encodeURIComponent(r.title || r.videoId),
+    });
+  } catch (e) {
+    await recordExtract(false, clean);
+    return NextResponse.json(
+      { error: (e as Error).message || 'Gagal mengekstrak video.' },
+      { status: 502 },
+    );
+  }
+}
+

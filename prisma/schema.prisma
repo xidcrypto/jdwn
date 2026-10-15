@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id           Int       @id @default(1)
+  name         String
+  email        String    @unique
+  username     String    @unique
+  passwordHash String
+  salt         String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Session {
+  token     String   @id
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Proxy {
+  id          Int       @id @default(autoincrement())
+  url         String    @unique
+  enabled     Boolean   @default(true)
+  failCount   Int       @default(0)
+  lastUsedAt  DateTime?
+  lastTestOk  Boolean?
+  lastTestAt  DateTime?
+  source      String    @default("manual")
+  createdAt   DateTime  @default(now())
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model Visitor {
+  id        Int      @id @default(autoincrement())
+  ipHash    String   @unique
+  hits      Int      @default(1)
+  userAgent String?
+  firstSeen DateTime @default(now())
+  lastSeen  DateTime @updatedAt
+}
+
+model DailyStat {
+  date      String @id
+  visits    Int    @default(0)
+  extracts  Int    @default(0)
+  downloads Int    @default(0)
+  ok        Int    @default(0)
+  failed    Int    @default(0)
+}
+
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  type      String
+  detail    String?
+  ok        Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
