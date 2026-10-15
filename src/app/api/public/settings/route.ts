@@ -11,5 +11,9 @@ export async function GET() {
     publicEnabled: s.publicEnabled,
     allowAllDomains: s.allowAllDomains,
     allowedDomains: s.allowedDomains,
+    allowedLinks: s.allowedLinks,
+    adsEnabled: s.adsEnabled,
+    adDownloadCode: s.adDownloadCode,
+    adPlayerCode: s.adPlayerCode,
   });
 }

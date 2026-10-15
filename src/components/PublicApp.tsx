@@ -17,6 +17,7 @@ import {
   Wand2,
   Zap,
 } from 'lucide-react';
+import AdSlot from './AdSlot';
 
 interface PublicResult {
   videoId: string;
@@ -32,6 +33,10 @@ interface PublicSettings {
   publicEnabled: boolean;
   allowAllDomains: boolean;
   allowedDomains: string[];
+  allowedLinks: string[];
+  adsEnabled: boolean;
+  adDownloadCode: string;
+  adPlayerCode: string;
 }
 
 export default function PublicApp() {
@@ -92,6 +97,7 @@ export default function PublicApp() {
   };
 
   const siteName = cfg?.siteName || 'jwplyr Extractor';
+  const showAds = cfg?.adsEnabled === true;
 
   return (
     <div className="pub">
@@ -203,6 +209,13 @@ export default function PublicApp() {
                       <Wand2 size={17} /> Video lain
                     </button>
                   </div>
+
+                  {showAds && cfg?.adDownloadCode ? (
+                    <div className="ad-slot ad-download" aria-label="Iklan">
+                      <span className="ad-tag">Iklan</span>
+                      <AdSlot html={cfg.adDownloadCode} />
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -211,6 +224,12 @@ export default function PublicApp() {
                   <div className="video-badge">
                     <span className="dot live" style={{ color: 'var(--ok)' }} /> Preview
                   </div>
+                  {showAds && cfg?.adPlayerCode ? (
+                    <div className="ad-slot ad-player" aria-label="Iklan">
+                      <span className="ad-tag">Iklan</span>
+                      <AdSlot html={cfg.adPlayerCode} />
+                    </div>
+                  ) : null}
                   <video src={result.streamUrl} controls playsInline autoPlay />
                 </div>
               ) : null}

@@ -22,6 +22,7 @@ import {
   Loader2,
   LogIn,
   LogOut,
+  Megaphone,
   Play,
   Plus,
   RefreshCw,
@@ -73,8 +74,12 @@ type ToastType = 'ok' | 'err' | 'info';
 interface AppSettings {
   siteName: string;
   allowedDomains: string[];
+  allowedLinks: string[];
   allowAllDomains: boolean;
   publicEnabled: boolean;
+  adsEnabled: boolean;
+  adDownloadCode: string;
+  adPlayerCode: string;
 }
 
 interface DailyPoint {
@@ -297,6 +302,7 @@ export default function AdminApp() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [domainInput, setDomainInput] = useState('');
+  const [linkInput, setLinkInput] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
 
   const [liUser, setLiUser] = useState('');
@@ -718,6 +724,37 @@ export default function AdminApp() {
   const removeDomain = async (d: string) => {
     if (!settings) return;
     await saveAppSettings({ allowedDomains: settings.allowedDomains.filter((x) => x !== d) }, true);
+  };
+
+  const cleanLink = (raw: string): string => {
+    let s = String(raw || '').trim();
+    if (!s) return '';
+    if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+    try {
+      const u = new URL(s);
+      if (!u.hostname.includes('.')) return '';
+      const path = u.pathname === '/' ? '' : u.pathname.replace(/\/+$/, '');
+      return `${u.protocol}//${u.host.toLowerCase()}${path}${u.search}`;
+    } catch {
+      return '';
+    }
+  };
+
+  const addLink = async () => {
+    if (!settings) return;
+    const l = cleanLink(linkInput);
+    if (!l) return push('info', 'Link tidak valid', 'Contoh: https://jwplyr.com/e/');
+    if (settings.allowedLinks.includes(l)) return push('info', 'Sudah ada', `${l} sudah terdaftar.`);
+    const ok = await saveAppSettings({ allowedLinks: [...settings.allowedLinks, l] }, true);
+    if (ok) {
+      setLinkInput('');
+      push('ok', 'Link ditambahkan', l);
+    }
+  };
+
+  const removeLink = async (l: string) => {
+    if (!settings) return;
+    await saveAppSettings({ allowedLinks: settings.allowedLinks.filter((x) => x !== l) }, true);
   };
 
   const changePw = async () => {
@@ -1534,6 +1571,141 @@ export default function AdminApp() {
                                 <span className="hint">Belum ada domain. Tambahkan minimal satu.</span>
                               )}
                             </div>
+                          </div>
+
+                          <div className={settings.allowAllDomains ? 'domains-block disabled' : 'domains-block'}>
+                            <label className="label">
+                              <Link2 size={13} /> Link spesifik yang diizinkan
+                            </label>
+                            <p className="hint" style={{ marginBottom: 10 }}>
+                              Opsional. Tautan yang diawali dengan link ini selalu diizinkan, meski
+                              domainnya tidak ada di daftar di atas.
+                            </p>
+                            <div className="input-group">
+                              <input
+                                className="input"
+                                type="text"
+                                value={linkInput}
+                                placeholder="https://jwplyr.com/e/"
+                                disabled={settings.allowAllDomains}
+                                onChange={(e) => setLinkInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') addLink();
+                                }}
+                              />
+                              <button
+                                className="btn"
+                                onClick={addLink}
+                                disabled={settings.allowAllDomains || savingSettings}
+                              >
+                                <Plus size={16} /> Tambah
+                              </button>
+                            </div>
+
+                            <div className="domain-chips">
+                              {settings.allowedLinks.length ? (
+                                settings.allowedLinks.map((l) => (
+                                  <span className="domain-chip" key={l}>
+                                    <Link2 size={13} /> {l}
+                                    <button
+                                      type="button"
+                                      className="chip-x"
+                                      aria-label={`Hapus ${l}`}
+                                      onClick={() => removeLink(l)}
+                                      disabled={settings.allowAllDomains}
+                                    >
+                                      <X size={13} />
+                                    </button>
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="hint">Belum ada link spesifik.</span>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="card d1 animate-in">
+                      <div className="card-head">
+                        <span className="head-icon">
+                          <Megaphone size={16} />
+                        </span>
+                        <h2>Iklan (Adsterra)</h2>
+                        <div className="spacer" />
+                        {settings ? (
+                          <button
+                            className={`switch ${settings.adsEnabled ? 'on' : ''}`}
+                            aria-label="Aktif/nonaktif iklan"
+                            onClick={() => saveAppSettings({ adsEnabled: !settings.adsEnabled })}
+                          />
+                        ) : null}
+                      </div>
+
+                      {!settings ? (
+                        <div className="skeleton" style={{ height: 160, borderRadius: 12 }} />
+                      ) : (
+                        <>
+                          <p className="hint" style={{ marginBottom: 14 }}>
+                            Tempel kode iklan Adsterra (banner/social bar) apa adanya, termasuk tag{' '}
+                            <code>&lt;script&gt;</code>. Kode akan dijalankan otomatis di halaman
+                            publik.
+                          </p>
+
+                          <div className="field">
+                            <label className="label" htmlFor="adDl">
+                              <Download size={13} /> Kode iklan — tombol Download (setelah berhasil)
+                            </label>
+                            <textarea
+                              id="adDl"
+                              className="textarea code"
+                              rows={5}
+                              value={settings.adDownloadCode}
+                              placeholder={'<script type="text/javascript">\n  atOptions = { ... };\n</script>\n<script src="//.../invoke.js"></script>'}
+                              onChange={(e) =>
+                                setSettings({ ...settings, adDownloadCode: e.target.value })
+                              }
+                            />
+                          </div>
+
+                          <div className="field">
+                            <label className="label" htmlFor="adPlayer">
+                              <Play size={13} /> Kode iklan — area player video
+                            </label>
+                            <textarea
+                              id="adPlayer"
+                              className="textarea code"
+                              rows={5}
+                              value={settings.adPlayerCode}
+                              placeholder={'<script type="text/javascript">\n  atOptions = { ... };\n</script>\n<script src="//.../invoke.js"></script>'}
+                              onChange={(e) =>
+                                setSettings({ ...settings, adPlayerCode: e.target.value })
+                              }
+                            />
+                          </div>
+
+                          <div className="row">
+                            <button
+                              className="btn"
+                              onClick={() =>
+                                saveAppSettings({
+                                  adDownloadCode: settings.adDownloadCode,
+                                  adPlayerCode: settings.adPlayerCode,
+                                })
+                              }
+                              disabled={savingSettings}
+                            >
+                              {savingSettings ? (
+                                <Loader2 className="spinner" size={16} />
+                              ) : (
+                                <Save size={16} />
+                              )}
+                              Simpan kode iklan
+                            </button>
+                            <span className="status-line">
+                              {settings.adsEnabled ? 'Iklan aktif' : 'Iklan nonaktif'}
+                            </span>
                           </div>
                         </>
                       )}

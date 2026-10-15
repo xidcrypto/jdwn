@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { getSettings, saveSettings, normalizeDomains, type AppSettings } from '@/lib/settings';
+import { getSettings, saveSettings, normalizeDomains, normalizeLinks, type AppSettings } from '@/lib/settings';
 
 export const runtime = 'nodejs';
 
@@ -21,6 +21,10 @@ export async function PUT(req: Request) {
   if (typeof body.publicEnabled === 'boolean') patch.publicEnabled = body.publicEnabled;
   if (typeof body.allowAllDomains === 'boolean') patch.allowAllDomains = body.allowAllDomains;
   if (body.allowedDomains !== undefined) patch.allowedDomains = normalizeDomains(body.allowedDomains);
+  if (body.allowedLinks !== undefined) patch.allowedLinks = normalizeLinks(body.allowedLinks);
+  if (typeof body.adsEnabled === 'boolean') patch.adsEnabled = body.adsEnabled;
+  if (typeof body.adDownloadCode === 'string') patch.adDownloadCode = body.adDownloadCode;
+  if (typeof body.adPlayerCode === 'string') patch.adPlayerCode = body.adPlayerCode;
 
   if (!Object.keys(patch).length) {
     return NextResponse.json({ error: 'Tidak ada perubahan yang dikirim.' }, { status: 400 });

@@ -3,15 +3,23 @@ import { prisma } from './prisma';
 export interface AppSettings {
   siteName: string;
   allowedDomains: string[];
+  allowedLinks: string[];
   allowAllDomains: boolean;
   publicEnabled: boolean;
+  adsEnabled: boolean;
+  adDownloadCode: string;
+  adPlayerCode: string;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   siteName: 'jwplyr Extractor',
   allowedDomains: ['jwplyr.com'],
+  allowedLinks: [],
   allowAllDomains: false,
   publicEnabled: true,
+  adsEnabled: false,
+  adDownloadCode: '',
+  adPlayerCode: '',
 };
 
 function parseBool(v: string | undefined, def: boolean): boolean {
@@ -43,6 +51,37 @@ export function normalizeDomains(list: unknown): string[] {
   return out;
 }
 
+/** Bersihkan input link: tambahkan https:// bila perlu, buang spasi & trailing slash. */
+export function normalizeLink(raw: string): string {
+  let s = String(raw || '').trim();
+  if (!s) return '';
+  if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+  try {
+    const u = new URL(s);
+    if (!u.hostname.includes('.')) return '';
+    const path = u.pathname === '/' ? '' : u.pathname.replace(/\/+$/, '');
+    return `${u.protocol}//${u.host.toLowerCase()}${path}${u.search}`;
+  } catch {
+    return '';
+  }
+}
+
+export function normalizeLinks(list: unknown): string[] {
+  if (!Array.isArray(list)) return [];
+  const out: string[] = [];
+  for (const item of list) {
+    const l = normalizeLink(String(item));
+    if (l && !out.includes(l)) out.push(l);
+  }
+  return out;
+}
+
+function linkMatches(url: string, link: string): boolean {
+  if (!url.startsWith(link)) return false;
+  const rest = url.slice(link.length);
+  return rest === '' || rest[0] === '/' || rest[0] === '?' || rest[0] === '#';
+}
+
 export async function getSettings(): Promise<AppSettings> {
   const rows = await prisma.setting.findMany();
   const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
@@ -57,11 +96,24 @@ export async function getSettings(): Promise<AppSettings> {
     }
   }
 
+  let links = DEFAULT_SETTINGS.allowedLinks;
+  if (map.allowedLinks) {
+    try {
+      links = normalizeLinks(JSON.parse(map.allowedLinks));
+    } catch {
+      links = DEFAULT_SETTINGS.allowedLinks;
+    }
+  }
+
   return {
     siteName: map.siteName?.trim() || DEFAULT_SETTINGS.siteName,
     allowedDomains: domains,
+    allowedLinks: links,
     allowAllDomains: parseBool(map.allowAllDomains, DEFAULT_SETTINGS.allowAllDomains),
     publicEnabled: parseBool(map.publicEnabled, DEFAULT_SETTINGS.publicEnabled),
+    adsEnabled: parseBool(map.adsEnabled, DEFAULT_SETTINGS.adsEnabled),
+    adDownloadCode: map.adDownloadCode ?? DEFAULT_SETTINGS.adDownloadCode,
+    adPlayerCode: map.adPlayerCode ?? DEFAULT_SETTINGS.adPlayerCode,
   };
 }
 
@@ -73,11 +125,23 @@ export async function saveSettings(patch: Partial<AppSettings>): Promise<AppSett
   if (patch.allowedDomains !== undefined) {
     entries.push(['allowedDomains', JSON.stringify(normalizeDomains(patch.allowedDomains))]);
   }
+  if (patch.allowedLinks !== undefined) {
+    entries.push(['allowedLinks', JSON.stringify(normalizeLinks(patch.allowedLinks))]);
+  }
   if (patch.allowAllDomains !== undefined) {
     entries.push(['allowAllDomains', patch.allowAllDomains ? '1' : '0']);
   }
   if (patch.publicEnabled !== undefined) {
     entries.push(['publicEnabled', patch.publicEnabled ? '1' : '0']);
+  }
+  if (patch.adsEnabled !== undefined) {
+    entries.push(['adsEnabled', patch.adsEnabled ? '1' : '0']);
+  }
+  if (patch.adDownloadCode !== undefined) {
+    entries.push(['adDownloadCode', String(patch.adDownloadCode).slice(0, 20000)]);
+  }
+  if (patch.adPlayerCode !== undefined) {
+    entries.push(['adPlayerCode', String(patch.adPlayerCode).slice(0, 20000)]);
   }
 
   await Promise.all(
@@ -90,13 +154,23 @@ export async function saveSettings(patch: Partial<AppSettings>): Promise<AppSett
 }
 
 export function isUrlAllowed(url: string, settings: AppSettings): boolean {
+  const clean = url.trim();
+  if (settings.allowAllDomains) {
+    try {
+      new URL(clean);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  if (settings.allowedLinks.some((l) => linkMatches(clean, l))) return true;
+
   let host = '';
   try {
-    host = new URL(url).hostname.toLowerCase();
+    host = new URL(clean).hostname.toLowerCase();
   } catch {
     return false;
   }
   if (!host) return false;
-  if (settings.allowAllDomains) return true;
   return settings.allowedDomains.some((d) => host === d || host.endsWith('.' + d));
 }
