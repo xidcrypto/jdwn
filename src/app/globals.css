@@ -2131,3 +2131,129 @@ a {
 .ad-slot ins {
   max-width: 100%;
 }
+
+/* ============================================================
+   404 Not Found
+   ============================================================ */
+.nf {
+  position: relative;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: hidden;
+}
+.nf-orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.4;
+  pointer-events: none;
+}
+.nf-orb-1 {
+  width: 420px;
+  height: 420px;
+  top: -120px;
+  left: -100px;
+  background: radial-gradient(circle, #6d8cff, transparent 70%);
+  animation: float1 12s ease-in-out infinite;
+}
+.nf-orb-2 {
+  width: 380px;
+  height: 380px;
+  bottom: -140px;
+  right: -80px;
+  background: radial-gradient(circle, #22d3ee, transparent 70%);
+  animation: float2 14s ease-in-out infinite;
+}
+.nf-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 520px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px 30px 34px;
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+}
+.nf-logo {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 20px;
+  border-radius: 18px;
+  background: var(--grad);
+  background-size: 180% 180%;
+  color: #fff;
+  box-shadow: var(--shadow-glow);
+  animation: gradientMove 7s ease infinite, floaty 6s ease-in-out infinite;
+}
+.nf-code {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: clamp(56px, 16vw, 96px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  margin-bottom: 14px;
+  background: var(--grad);
+  background-size: 220% 220%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradientMove 6s ease infinite;
+}
+.nf-zero {
+  display: inline-grid;
+  place-items: center;
+  color: var(--accent);
+  -webkit-text-fill-color: currentColor;
+  animation: spinY 6s linear infinite;
+}
+.nf-title {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 4vw, 26px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+}
+.nf-sub {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+  max-width: 400px;
+  margin: 0 auto 26px;
+}
+.nf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.nf-actions .btn {
+  padding: 12px 20px;
+}
+@keyframes spinY {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+@media (max-width: 520px) {
+  .nf-card {
+    padding: 32px 20px 28px;
+  }
+  .nf-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
