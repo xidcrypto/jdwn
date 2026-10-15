@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { isInstalled, installAdmin, createSession } from '@/lib/auth';
+import { saveSettings } from '@/lib/settings';
 
 export const runtime = 'nodejs';
 
@@ -25,14 +26,17 @@ export async function POST(req: Request) {
     email?: string;
     username?: string;
     password?: string;
+    siteName?: string;
   };
 
+  const siteName = String(body.siteName || '').trim();
   const name = String(body.name || '').trim();
   const email = String(body.email || '').trim().toLowerCase();
   const username = String(body.username || '').trim();
   const password = String(body.password || '');
 
   const errors: Record<string, string> = {};
+  if (siteName.length < 2) errors.siteName = 'Nama website minimal 2 karakter';
   if (name.length < 2) errors.name = 'Nama minimal 2 karakter';
   if (!EMAIL_RE.test(email)) errors.email = 'Format email tidak valid';
   if (!USERNAME_RE.test(username))
@@ -45,6 +49,7 @@ export async function POST(req: Request) {
 
   try {
     await installAdmin({ name, email, username, password });
+    await saveSettings({ siteName });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 409 });
   }

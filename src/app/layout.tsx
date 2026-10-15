@@ -3,6 +3,9 @@ import { Inter, Sora } from 'next/font/google';
 import './globals.css';
 import { ConfirmProvider } from '@/components/ConfirmProvider';
 import { SITE_URL } from '@/lib/site';
+import { getSettings } from '@/lib/settings';
+
+export const dynamic = 'force-dynamic';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -16,37 +19,48 @@ const sora = Sora({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: {
-    default: 'jwplyr Extractor — Video Downloader Cepat & Gratis',
-    template: '%s · jwplyr Extractor',
-  },
-  description:
-    'Unduh video dan audio dari berbagai platform dengan cepat, gratis, dan tanpa registrasi.',
-  applicationName: 'jwplyr Extractor',
-  keywords: ['video downloader', 'unduh video', 'download video', 'mp3', 'jwplyr'],
-  formatDetection: { telephone: false, email: false, address: false },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'jwplyr',
-  },
-  openGraph: {
-    type: 'website',
-    siteName: 'jwplyr Extractor',
-    title: 'jwplyr Extractor — Video Downloader Cepat & Gratis',
-    description:
-      'Unduh video dan audio dari berbagai platform dengan cepat, gratis, dan tanpa registrasi.',
-    url: SITE_URL,
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'jwplyr Extractor — Video Downloader Cepat & Gratis',
-    description:
-      'Unduh video dan audio dari berbagai platform dengan cepat, gratis, dan tanpa registrasi.',
-  },
-};
+const SITE_DESCRIPTION =
+  'Unduh video dan audio dari berbagai platform dengan cepat, gratis, dan tanpa registrasi.';
+
+export async function generateMetadata(): Promise<Metadata> {
+  let siteName = 'Video Downloader';
+  try {
+    const settings = await getSettings();
+    if (settings.siteName) siteName = settings.siteName;
+  } catch {
+    /* pakai default bila pengaturan belum tersedia */
+  }
+  const title = `${siteName} — Video Downloader Cepat & Gratis`;
+
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: {
+      default: title,
+      template: `%s · ${siteName}`,
+    },
+    description: SITE_DESCRIPTION,
+    applicationName: siteName,
+    keywords: ['video downloader', 'unduh video', 'download video', 'unduh mp3', siteName],
+    formatDetection: { telephone: false, email: false, address: false },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'black-translucent',
+      title: siteName,
+    },
+    openGraph: {
+      type: 'website',
+      siteName,
+      title,
+      description: SITE_DESCRIPTION,
+      url: SITE_URL,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description: SITE_DESCRIPTION,
+    },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: '#0a0b10',

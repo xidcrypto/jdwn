@@ -1,13 +1,20 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import StaticShell from '@/components/StaticShell';
+import { getSettings } from '@/lib/settings';
 
-export const metadata: Metadata = {
-  title: 'Syarat & Ketentuan',
-  description: 'Aturan penggunaan layanan jwplyr Extractor.',
-};
+export const viewport: Viewport = { themeColor: '#f5f6fb' };
 
-export default function TermsPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const { siteName } = await getSettings();
+  return {
+    title: 'Syarat & Ketentuan',
+    description: `Aturan penggunaan layanan ${siteName}.`,
+  };
+}
+
+export default async function TermsPage() {
+  const { siteName } = await getSettings();
   return (
     <StaticShell
       title="Syarat & Ketentuan"
@@ -15,7 +22,7 @@ export default function TermsPage() {
       updated="15 Oktober 2026"
     >
       <p>
-        Selamat datang di <strong>jwplyr Extractor</strong>. Syarat &amp; Ketentuan ini mengatur
+        Selamat datang di <strong>{siteName}</strong>. Syarat &amp; Ketentuan ini mengatur
         penggunaan layanan kami. Jika kamu tidak setuju dengan ketentuan ini, mohon tidak
         menggunakan layanan.
       </p>

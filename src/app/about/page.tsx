@@ -1,24 +1,30 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import StaticShell from '@/components/StaticShell';
+import { getSettings } from '@/lib/settings';
 
-export const metadata: Metadata = {
-  title: 'Tentang',
-  description:
-    'jwplyr Extractor adalah alat gratis untuk mengunduh video dari berbagai platform secara cepat, aman, dan tanpa registrasi.',
-};
+export const viewport: Viewport = { themeColor: '#f5f6fb' };
 
-export default function AboutPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const { siteName } = await getSettings();
+  return {
+    title: 'Tentang',
+    description: `${siteName} adalah alat gratis untuk mengunduh video dari berbagai platform secara cepat, aman, dan tanpa registrasi.`,
+  };
+}
+
+export default async function AboutPage() {
+  const { siteName } = await getSettings();
   return (
     <StaticShell
-      title="Tentang jwplyr Extractor"
+      title={`Tentang ${siteName}`}
       subtitle="Alat gratis untuk mengunduh video favoritmu dengan cepat, aman, dan tanpa registrasi."
       updated="15 Oktober 2026"
     >
       <p>
-        <strong>jwplyr Extractor</strong> adalah layanan berbasis web yang membantu kamu menyimpan
-        video dari berbagai platform media sosial dan situs berbagi video. Cukup tempel tautan
-        video, dan sistem akan menyiapkannya untuk diunduh dalam kualitas terbaik yang tersedia.
+        <strong>{siteName}</strong> adalah layanan berbasis web yang membantu kamu menyimpan video
+        dari berbagai platform media sosial dan situs berbagi video. Cukup tempel tautan video, dan
+        sistem akan menyiapkannya untuk diunduh dalam kualitas terbaik yang tersedia.
       </p>
 
       <h2>Apa yang bisa dilakukan</h2>

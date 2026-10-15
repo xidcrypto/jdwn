@@ -27,7 +27,7 @@ export interface AppSettings {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  siteName: 'jwplyr Extractor',
+  siteName: 'Video Downloader',
   allowedDomains: ['jwplyr.com'],
   allowedLinks: [],
   allowAllDomains: false,

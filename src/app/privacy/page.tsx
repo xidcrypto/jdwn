@@ -1,14 +1,20 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import StaticShell from '@/components/StaticShell';
+import { getSettings } from '@/lib/settings';
 
-export const metadata: Metadata = {
-  title: 'Kebijakan Privasi',
-  description:
-    'Bagaimana jwplyr Extractor mengumpulkan, menggunakan, dan melindungi data pengguna.',
-};
+export const viewport: Viewport = { themeColor: '#f5f6fb' };
 
-export default function PrivacyPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const { siteName } = await getSettings();
+  return {
+    title: 'Kebijakan Privasi',
+    description: `Bagaimana ${siteName} mengumpulkan, menggunakan, dan melindungi data pengguna.`,
+  };
+}
+
+export default async function PrivacyPage() {
+  const { siteName } = await getSettings();
   return (
     <StaticShell
       title="Kebijakan Privasi"
@@ -16,7 +22,7 @@ export default function PrivacyPage() {
       updated="15 Oktober 2026"
     >
       <p>
-        Kebijakan Privasi ini menjelaskan bagaimana <strong>jwplyr Extractor</strong> ("kami")
+        Kebijakan Privasi ini menjelaskan bagaimana <strong>{siteName}</strong> (&ldquo;kami&rdquo;)
         mengelola informasi saat kamu menggunakan layanan kami. Dengan menggunakan layanan ini,
         kamu menyetujui praktik yang dijelaskan di bawah.
       </p>

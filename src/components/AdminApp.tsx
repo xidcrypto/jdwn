@@ -522,6 +522,7 @@ export default function AdminApp() {
   const [visitorDetail, setVisitorDetail] = useState<VisitorLogRow | null>(null);
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(false);
+  const [brandName, setBrandName] = useState('');
   const [domainInput, setDomainInput] = useState('');
   const [linkInput, setLinkInput] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
@@ -647,6 +648,13 @@ export default function AdminApp() {
       } catch {
         /* lanjut; biarkan halaman login tampil */
       }
+
+      fetch('/api/public/settings')
+        .then((r) => r.json())
+        .then((d: { siteName?: string }) => {
+          if (d.siteName) setBrandName(d.siteName);
+        })
+        .catch(() => {});
 
       if (!saved) {
         setBooting(false);
@@ -1044,8 +1052,8 @@ export default function AdminApp() {
             <div className="login-logo">
               <Film size={28} />
             </div>
-            <div className="login-title">jwplyr Extractor</div>
-            <div className="login-sub">Masuk ke panel admin untuk mengelola proxy &amp; video.</div>
+            <div className="login-title">{brandName || 'Panel Admin'}</div>
+            <div className="login-sub">Masuk ke panel admin untuk mengelola video &amp; pengaturan.</div>
 
             <div className="field">
               <label className="label" htmlFor="liUser">
@@ -1191,7 +1199,7 @@ export default function AdminApp() {
             </div>
             <div>
               <div className="brand-name">
-                jwplyr <span>Extractor</span>
+                {settings?.siteName || brandName || 'Admin Panel'}
               </div>
               <div className="brand-sub">Admin Panel</div>
             </div>
@@ -1240,7 +1248,7 @@ export default function AdminApp() {
               <Film size={18} />
             </div>
             <div>
-              <div className="t-title">jwplyr Extractor</div>
+              <div className="t-title">{settings?.siteName || brandName || 'Admin Panel'}</div>
               <div className="t-sub">{name || username || 'admin'}</div>
             </div>
             <div className="spacer" />

@@ -1,11 +1,17 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import StaticShell from '@/components/StaticShell';
 import { CREATOR } from '@/lib/site';
+import { getSettings } from '@/lib/settings';
 
-export const metadata: Metadata = {
-  title: 'Kontak',
-  description: 'Hubungi tim jwplyr Extractor untuk pertanyaan, masukan, atau laporan.',
-};
+export const viewport: Viewport = { themeColor: '#f5f6fb' };
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { siteName } = await getSettings();
+  return {
+    title: 'Kontak',
+    description: `Hubungi tim ${siteName} untuk pertanyaan, masukan, atau laporan.`,
+  };
+}
 
 export default function ContactPage() {
   return (

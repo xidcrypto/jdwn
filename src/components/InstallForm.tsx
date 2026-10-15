@@ -10,6 +10,7 @@ import {
   Eye,
   EyeOff,
   Film,
+  Globe,
   KeyRound,
   Loader2,
   Mail,
@@ -36,6 +37,7 @@ const STRENGTH_LABEL = ['Sangat lemah', 'Lemah', 'Cukup', 'Kuat', 'Sangat kuat']
 export default function InstallForm() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
+  const [siteName, setSiteName] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -57,6 +59,7 @@ export default function InstallForm() {
 
   const validate = (): Record<string, string> => {
     const e: Record<string, string> = {};
+    if (siteName.trim().length < 2) e.siteName = 'Nama website minimal 2 karakter';
     if (name.trim().length < 2) e.name = 'Nama minimal 2 karakter';
     if (!EMAIL_RE.test(email.trim())) e.email = 'Format email tidak valid';
     if (!USERNAME_RE.test(username.trim()))
@@ -76,7 +79,7 @@ export default function InstallForm() {
       const r = await fetch('/api/auth/install', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, username, password }),
+        body: JSON.stringify({ name, email, username, password, siteName }),
       });
       const data = (await r.json().catch(() => ({}))) as {
         token?: string;
@@ -133,8 +136,8 @@ export default function InstallForm() {
         <div className="login-logo">
           <Film size={28} />
         </div>
-        <div className="login-title">jwplyr Extractor</div>
-        <div className="login-sub">Buat akun admin pertama untuk memulai.</div>
+        <div className="login-title">Instalasi Awal</div>
+        <div className="login-sub">Beri nama website lalu buat akun admin pertama.</div>
 
         <div className="install-banner">
           <Sparkles size={15} />
@@ -148,6 +151,28 @@ export default function InstallForm() {
             <CircleAlert size={13} /> {errors._}
           </div>
         ) : null}
+
+        <div className="field">
+          <label className="label" htmlFor="inSite">
+            <Globe size={13} /> Nama website
+          </label>
+          <input
+            id="inSite"
+            className={`input ${errors.siteName ? 'invalid' : ''}`}
+            type="text"
+            value={siteName}
+            autoComplete="organization"
+            placeholder="Contoh: UnduhCepat"
+            onChange={(e) => setSiteName(e.target.value)}
+          />
+          {errors.siteName ? (
+            <div className="field-error">
+              <CircleAlert size={12} /> {errors.siteName}
+            </div>
+          ) : (
+            <div className="field-hint">Nama ini tampil di judul, navbar, dan halaman publik.</div>
+          )}
+        </div>
 
         <div className="field">
           <label className="label" htmlFor="inName">

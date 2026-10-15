@@ -3833,13 +3833,24 @@ a {
   overflow: hidden;
   display: grid;
   place-items: center;
+  align-self: start;
   background: linear-gradient(135deg, rgba(124, 139, 255, 0.22), rgba(56, 224, 208, 0.12));
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 .lz-media-thumb img {
+  display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  object-fit: contain;
+}
+/* Ikuti rasio asli video: jangan dipotong (potret tetap potret) */
+.lz-media-thumb.lz-thumb-landscape,
+.lz-media-thumb.lz-thumb-portrait {
+  aspect-ratio: auto;
+}
+.lz-media-thumb.lz-thumb-portrait {
+  max-width: 200px;
+  justify-self: center;
 }
 .lz-media-thumb .ph {
   color: rgba(255, 255, 255, 0.5);
@@ -4188,4 +4199,185 @@ a {
   .lz-card:hover {
     transform: none;
   }
+}
+
+/* ============================================================
+   Navbar — spread brand & menu to the edges (less centered)
+   ============================================================ */
+.lz-nav-inner {
+  max-width: none;
+}
+@media (min-width: 900px) {
+  .lz-nav {
+    padding-left: clamp(24px, 3.2vw, 60px);
+    padding-right: clamp(24px, 3.2vw, 60px);
+  }
+}
+
+/* ============================================================
+   Light theme — public landing + info pages only
+   (admin panel stays dark)
+   ============================================================ */
+.theme-light {
+  --bg: #f5f6fb;
+  --bg-soft: #eceef6;
+  --surface: rgba(255, 255, 255, 0.86);
+  --surface-solid: #ffffff;
+  --surface-2: rgba(15, 23, 42, 0.035);
+  --border: rgba(15, 23, 42, 0.1);
+  --border-strong: rgba(15, 23, 42, 0.18);
+  --txt: #0b1220;
+  --muted: #4c566b;
+  --faint: #79839a;
+  --accent: #5560e8;
+  --accent-2: #0d9488;
+  --violet: #7c3aed;
+  --ok: #0f9d6b;
+  --err: #dc2626;
+  --warn: #b45309;
+
+  position: relative;
+  color: var(--txt);
+}
+
+/* opaque light backdrop behind the grid/aurora layers */
+.theme-light::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+  background: var(--bg);
+}
+/* hide the dark ambient blobs on light pages */
+body:has(.theme-light)::before,
+body:has(.theme-light)::after {
+  display: none;
+}
+
+.theme-light .pub-grid {
+  background-image: linear-gradient(rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+}
+.theme-light .lz-aurora {
+  opacity: 0.5;
+}
+
+/* nav */
+.theme-light .lz-nav {
+  background: rgba(255, 255, 255, 0.78);
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+.theme-light .lz-nav-link:hover {
+  background: rgba(15, 23, 42, 0.05);
+}
+.theme-light .lz-logo {
+  box-shadow: 0 12px 26px -14px rgba(85, 96, 232, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.theme-light .lz-nav-cta {
+  background: linear-gradient(135deg, #5560e8, #7c3aed);
+  box-shadow: 0 14px 30px -16px rgba(85, 96, 232, 0.75);
+}
+
+/* hero */
+.theme-light .lz-eyebrow {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+.theme-light .lz-grad {
+  background-image: linear-gradient(100deg, #4f5bd5, #7c3aed 45%, #0d9488);
+  background-size: 200% 200%;
+}
+
+/* tool */
+.theme-light .lz-tool {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(246, 247, 252, 0.92));
+  border-color: rgba(15, 23, 42, 0.09);
+  box-shadow: 0 30px 70px -34px rgba(15, 23, 42, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.theme-light .lz-input {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(15, 23, 42, 0.12);
+}
+.theme-light .lz-input::placeholder {
+  color: var(--faint);
+}
+.theme-light .lz-input:focus {
+  background: #fff;
+  border-color: rgba(85, 96, 232, 0.6);
+  box-shadow: 0 0 0 4px rgba(85, 96, 232, 0.13), 0 0 30px -10px rgba(85, 96, 232, 0.5);
+}
+.theme-light .lz-inline {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+.theme-light .lz-inline:hover {
+  color: var(--txt);
+  background: rgba(15, 23, 42, 0.08);
+  border-color: rgba(15, 23, 42, 0.18);
+}
+.theme-light .lz-submit {
+  background: linear-gradient(135deg, #5560e8, #7c3aed);
+  box-shadow: 0 18px 40px -18px rgba(85, 96, 232, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+/* result media */
+.theme-light .lz-media {
+  background: linear-gradient(180deg, #ffffff, #f7f8fc);
+  border-color: rgba(15, 23, 42, 0.09);
+  box-shadow: 0 30px 70px -34px rgba(15, 23, 42, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.theme-light .lz-media-thumb {
+  background: linear-gradient(135deg, rgba(85, 96, 232, 0.16), rgba(13, 148, 136, 0.12));
+  border-color: rgba(15, 23, 42, 0.1);
+}
+.theme-light .lz-media-thumb .ph {
+  color: rgba(15, 23, 42, 0.4);
+}
+.theme-light .lz-player {
+  border-color: rgba(15, 23, 42, 0.12);
+}
+.theme-light .lz-player-bar {
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+
+/* sources */
+.theme-light .lz-sources-row > span {
+  color: rgba(15, 23, 42, 0.45);
+}
+
+/* flow + cards */
+.theme-light .lz-flow-item,
+.theme-light .lz-card {
+  background: linear-gradient(180deg, #ffffff, #f7f8fc);
+  border-color: rgba(15, 23, 42, 0.09);
+  box-shadow: 0 18px 40px -30px rgba(15, 23, 42, 0.35);
+}
+.theme-light .lz-flow-item:hover,
+.theme-light .lz-card:hover {
+  border-color: rgba(85, 96, 232, 0.4);
+  box-shadow: 0 26px 54px -28px rgba(85, 96, 232, 0.45);
+}
+
+/* FAQ */
+.theme-light .lz-qa details {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 10px 30px -26px rgba(15, 23, 42, 0.4);
+}
+.theme-light .lz-qa details[open] {
+  border-color: rgba(85, 96, 232, 0.35);
+  background: rgba(85, 96, 232, 0.04);
+}
+.theme-light .lz-qa summary:hover {
+  color: var(--accent);
+}
+
+/* info pages (StaticShell) */
+.theme-light .pub-header {
+  background: rgba(255, 255, 255, 0.78);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+.theme-light .site-footer {
+  border-top-color: rgba(15, 23, 42, 0.08);
 }

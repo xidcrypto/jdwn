@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { ArrowLeft, Film } from 'lucide-react';
 import SiteFooter from './SiteFooter';
+import { getSettings } from '@/lib/settings';
 
-export default function StaticShell({
+export default async function StaticShell({
   title,
   subtitle,
   updated,
@@ -13,18 +14,17 @@ export default function StaticShell({
   updated?: string;
   children: React.ReactNode;
 }) {
+  const { siteName } = await getSettings();
   return (
-    <div className="doc">
+    <div className="doc theme-light">
       <header className="pub-header">
         <Link href="/" className="brand">
           <div className="brand-mark">
             <Film size={20} />
           </div>
           <div>
-            <div className="brand-name">
-              jwplyr <span>Extractor</span>
-            </div>
-            <div className="brand-sub">Video Downloader</div>
+            <div className="brand-name">{siteName}</div>
+            <div className="brand-sub">Unduhan video</div>
           </div>
         </Link>
         <div className="spacer" />
@@ -42,7 +42,7 @@ export default function StaticShell({
         <article className="prose">{children}</article>
       </main>
 
-      <SiteFooter />
+      <SiteFooter siteName={siteName} />
     </div>
   );
 }

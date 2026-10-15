@@ -80,6 +80,7 @@ export default function PublicApp() {
   const [showPlayer, setShowPlayer] = useState(false);
   const [vpnBlocked, setVpnBlocked] = useState(false);
   const [cfg, setCfg] = useState<PublicSettings | null>(null);
+  const [thumb, setThumb] = useState<'none' | 'portrait' | 'landscape'>('none');
 
   useEffect(() => {
     fetch('/api/public/visit', { method: 'POST' }).catch(() => undefined);
@@ -109,6 +110,7 @@ export default function PublicApp() {
     setVpnBlocked(false);
     setResult(null);
     setShowPlayer(false);
+    setThumb('none');
     try {
       const r = await fetch('/api/public/extract', {
         method: 'POST',
@@ -136,6 +138,7 @@ export default function PublicApp() {
     setError('');
     setUrl('');
     setShowPlayer(false);
+    setThumb('none');
   };
 
   const pasteFromClipboard = async () => {
@@ -180,7 +183,7 @@ export default function PublicApp() {
   };
 
   return (
-    <div className="pub">
+    <div className="pub theme-light">
       <DevGuard enabled={cfg?.devGuardEnabled === true} />
       <div className="pub-grid" aria-hidden="true" />
       <div className="lz-aurora" aria-hidden="true" />
@@ -207,9 +210,6 @@ export default function PublicApp() {
               Kontak
             </Link>
           </nav>
-          <a href="#unduh" className="lz-nav-cta">
-            Mulai
-          </a>
         </div>
       </header>
 
@@ -320,19 +320,23 @@ export default function PublicApp() {
         {result ? (
           <section className="lz-result">
             <article className="lz-media">
-              <div className="lz-media-thumb">
+              <div className={`lz-media-thumb lz-thumb-${thumb}`}>
                 {result.thumb ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={result.thumb}
                     alt=""
+                    onLoad={(e) => {
+                      const img = e.currentTarget;
+                      setThumb(img.naturalHeight > img.naturalWidth ? 'portrait' : 'landscape');
+                    }}
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      setThumb('none');
                     }}
                   />
-                ) : (
-                  <Film className="ph" size={44} />
-                )}
+                ) : null}
+                {!result.thumb || thumb === 'none' ? <Film className="ph" size={44} /> : null}
               </div>
               <div className="lz-media-body">
                 <span className="lz-media-tag">

@@ -1,14 +1,20 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import StaticShell from '@/components/StaticShell';
+import { getSettings } from '@/lib/settings';
 
-export const metadata: Metadata = {
-  title: 'Kebijakan DMCA',
-  description:
-    'Prosedur pemberitahuan dan penanganan pelanggaran hak cipta (DMCA) di jwplyr Extractor.',
-};
+export const viewport: Viewport = { themeColor: '#f5f6fb' };
 
-export default function DmcaPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const { siteName } = await getSettings();
+  return {
+    title: 'Kebijakan DMCA',
+    description: `Prosedur pemberitahuan dan penanganan pelanggaran hak cipta (DMCA) di ${siteName}.`,
+  };
+}
+
+export default async function DmcaPage() {
+  const { siteName } = await getSettings();
   return (
     <StaticShell
       title="Kebijakan DMCA"
@@ -16,7 +22,7 @@ export default function DmcaPage() {
       updated="15 Oktober 2026"
     >
       <p>
-        <strong>jwplyr Extractor</strong> menghormati hak kekayaan intelektual pihak lain dan
+        <strong>{siteName}</strong> menghormati hak kekayaan intelektual pihak lain dan
         berkomitmen menangani keluhan pelanggaran hak cipta sesuai Digital Millennium Copyright Act
         (DMCA) dan hukum hak cipta yang berlaku.
       </p>

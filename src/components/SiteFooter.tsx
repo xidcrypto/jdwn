@@ -16,7 +16,7 @@ export function XIcon({ size = 13 }: { size?: number }) {
   );
 }
 
-export default function SiteFooter({ siteName = 'jwplyr Extractor' }: { siteName?: string }) {
+export default function SiteFooter({ siteName = 'Video Downloader' }: { siteName?: string }) {
   const year = new Date().getFullYear();
   return (
     <footer className="site-footer">
