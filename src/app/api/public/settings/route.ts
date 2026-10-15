@@ -21,5 +21,6 @@ export async function GET() {
     smartlinkPlayer: s.smartlinkPlayer,
     devGuardEnabled: s.devGuardEnabled,
     vpnBlockEnabled: s.vpnBlockEnabled,
+    ytdlpEnabled: s.ytdlpEnabled,
   });
 }

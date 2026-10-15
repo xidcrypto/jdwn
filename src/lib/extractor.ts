@@ -541,13 +541,24 @@ function headersToRecord(h: Headers): Record<string, string | undefined> {
 
 export async function openVideoStream(
   videoUrl: string,
-  { referer, range, proxyUrl }: { referer?: string; range?: string | null; proxyUrl?: string | null } = {},
+  {
+    referer,
+    range,
+    proxyUrl,
+    headers,
+  }: {
+    referer?: string;
+    range?: string | null;
+    proxyUrl?: string | null;
+    headers?: Record<string, string>;
+  } = {},
 ): Promise<VideoStream> {
   const target = new URL(videoUrl);
   const reqHeaders: Record<string, string> = {
     'User-Agent': UA,
     Referer: referer || 'https://jwplyr.com/',
     'Accept-Encoding': 'identity',
+    ...(headers || {}),
     ...(range ? { Range: range } : {}),
   };
   const pu = proxyUrl ? parseProxy(proxyUrl) : null;

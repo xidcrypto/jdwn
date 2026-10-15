@@ -683,6 +683,19 @@ a {
 .textarea::placeholder {
   color: var(--faint);
 }
+select.input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2398a1b6' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+  cursor: pointer;
+}
+select.input option {
+  background: var(--surface-solid);
+  color: var(--txt);
+}
 .input:hover,
 .textarea:hover {
   border-color: var(--border-strong);
@@ -3039,6 +3052,32 @@ a {
   background: var(--ok);
   box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
   animation: pulseDot 2.2s infinite;
+}
+.platform-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+.platform-chip {
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.platform-chip:hover {
+  color: var(--txt);
+  border-color: var(--border-strong);
+}
+.platform-chip.more {
+  color: var(--accent);
+  border-color: rgba(109, 140, 255, 0.34);
+  background: var(--grad-soft);
 }
 
 /* Input card — glassy with animated gradient ring */

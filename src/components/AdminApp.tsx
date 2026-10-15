@@ -94,6 +94,9 @@ interface AppSettings {
   smartlinkPlayer: boolean;
   vpnBlockEnabled: boolean;
   devGuardEnabled: boolean;
+  ytdlpEnabled: boolean;
+  ytdlpCookies: string;
+  ytdlpMaxHeight: number;
 }
 
 interface AccessLogRow {
@@ -2177,6 +2180,96 @@ export default function AdminApp() {
                                 saveAppSettings({ devGuardEnabled: !settings.devGuardEnabled })
                               }
                             />
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="card d1 animate-in">
+                      <div className="card-head">
+                        <span className="head-icon">
+                          <Globe size={16} />
+                        </span>
+                        <h2>Downloader Universal (yt-dlp)</h2>
+                        <div className="spacer" />
+                        {settings ? (
+                          <button
+                            className={`switch ${settings.ytdlpEnabled ? 'on' : ''}`}
+                            aria-label="Aktif/nonaktif yt-dlp"
+                            onClick={() => saveAppSettings({ ytdlpEnabled: !settings.ytdlpEnabled })}
+                          />
+                        ) : null}
+                      </div>
+
+                      {!settings ? (
+                        <div className="skeleton" style={{ height: 200, borderRadius: 12 }} />
+                      ) : (
+                        <>
+                          <p className="hint" style={{ marginBottom: 14 }}>
+                            Dukungan <b>YouTube, TikTok, Instagram, X/Twitter, Facebook</b> dan
+                            ribuan situs lain via yt-dlp. Tautan jwplyr tetap diproses oleh parser
+                            khusus. Situs yang butuh login (IG, TikTok) perlu cookies.
+                          </p>
+
+                          <div className="field">
+                            <label className="label" htmlFor="ytH">
+                              <Sparkles size={13} /> Kualitas maksimal
+                            </label>
+                            <select
+                              id="ytH"
+                              className="input"
+                              value={String(settings.ytdlpMaxHeight)}
+                              onChange={(e) =>
+                                saveAppSettings({ ytdlpMaxHeight: Number(e.target.value) })
+                              }
+                            >
+                              {[480, 720, 1080, 1440, 2160].map((h) => (
+                                <option key={h} value={h}>
+                                  {h}p{h === 1080 ? ' (disarankan)' : ''}
+                                </option>
+                              ))}
+                            </select>
+                            <p className="hint" style={{ marginTop: 7 }}>
+                              Batas resolusi saat menggabungkan video+audio (khusus situs seperti
+                              YouTube). Video adaptif diunduh sementara lalu dihapus otomatis.
+                            </p>
+                          </div>
+
+                          <div className="field">
+                            <label className="label" htmlFor="ytC">
+                              <KeyRound size={13} /> Cookies (format Netscape / cookies.txt)
+                            </label>
+                            <textarea
+                              id="ytC"
+                              className="input"
+                              rows={5}
+                              spellCheck={false}
+                              placeholder={
+                                'Boleh dikosongkan. Tempel isi cookies.txt dari browser yang sudah login (untuk Instagram, TikTok, dll).\n\n# Netscape HTTP Cookie File\n.instagram.com\tTRUE\t/\tTRUE\t0\tsessionid\t...'
+                              }
+                              value={settings.ytdlpCookies}
+                              onChange={(e) =>
+                                setSettings({ ...settings, ytdlpCookies: e.target.value })
+                              }
+                            />
+                            <div style={{ display: 'flex', gap: 9, marginTop: 9 }}>
+                              <button
+                                className="btn sm"
+                                onClick={() => saveAppSettings({ ytdlpCookies: settings.ytdlpCookies })}
+                                disabled={savingSettings}
+                              >
+                                <Save size={14} /> Simpan cookies
+                              </button>
+                              {settings.ytdlpCookies ? (
+                                <button
+                                  className="btn ghost sm"
+                                  onClick={() => saveAppSettings({ ytdlpCookies: '' })}
+                                  disabled={savingSettings}
+                                >
+                                  <Trash2 size={14} /> Hapus
+                                </button>
+                              ) : null}
+                            </div>
                           </div>
                         </>
                       )}

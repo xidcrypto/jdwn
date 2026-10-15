@@ -15,6 +15,9 @@ export interface AppSettings {
   smartlinkPlayer: boolean;
   vpnBlockEnabled: boolean;
   devGuardEnabled: boolean;
+  ytdlpEnabled: boolean;
+  ytdlpCookies: string;
+  ytdlpMaxHeight: number;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -32,6 +35,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   smartlinkPlayer: false,
   vpnBlockEnabled: true,
   devGuardEnabled: true,
+  ytdlpEnabled: true,
+  ytdlpCookies: '',
+  ytdlpMaxHeight: 1080,
 };
 
 function parseBool(v: string | undefined, def: boolean): boolean {
@@ -132,7 +138,17 @@ export async function getSettings(): Promise<AppSettings> {
     smartlinkPlayer: parseBool(map.smartlinkPlayer, DEFAULT_SETTINGS.smartlinkPlayer),
     vpnBlockEnabled: parseBool(map.vpnBlockEnabled, DEFAULT_SETTINGS.vpnBlockEnabled),
     devGuardEnabled: parseBool(map.devGuardEnabled, DEFAULT_SETTINGS.devGuardEnabled),
+    ytdlpEnabled: parseBool(map.ytdlpEnabled, DEFAULT_SETTINGS.ytdlpEnabled),
+    ytdlpCookies: map.ytdlpCookies ?? DEFAULT_SETTINGS.ytdlpCookies,
+    ytdlpMaxHeight: clampMaxHeight(map.ytdlpMaxHeight),
   };
+}
+
+const ALLOWED_HEIGHTS = [480, 720, 1080, 1440, 2160];
+function clampMaxHeight(v: string | undefined): number {
+  const n = parseInt(String(v ?? ''), 10);
+  if (!ALLOWED_HEIGHTS.includes(n)) return DEFAULT_SETTINGS.ytdlpMaxHeight;
+  return n;
 }
 
 export async function saveSettings(patch: Partial<AppSettings>): Promise<AppSettings> {
@@ -178,6 +194,15 @@ export async function saveSettings(patch: Partial<AppSettings>): Promise<AppSett
   }
   if (patch.devGuardEnabled !== undefined) {
     entries.push(['devGuardEnabled', patch.devGuardEnabled ? '1' : '0']);
+  }
+  if (patch.ytdlpEnabled !== undefined) {
+    entries.push(['ytdlpEnabled', patch.ytdlpEnabled ? '1' : '0']);
+  }
+  if (patch.ytdlpCookies !== undefined) {
+    entries.push(['ytdlpCookies', String(patch.ytdlpCookies).slice(0, 100000)]);
+  }
+  if (patch.ytdlpMaxHeight !== undefined) {
+    entries.push(['ytdlpMaxHeight', String(clampMaxHeight(String(patch.ytdlpMaxHeight)))]);
   }
 
   await Promise.all(

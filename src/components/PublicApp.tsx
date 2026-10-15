@@ -49,6 +49,7 @@ interface PublicSettings {
   smartlinkPlayer: boolean;
   devGuardEnabled: boolean;
   vpnBlockEnabled: boolean;
+  ytdlpEnabled: boolean;
 }
 
 export default function PublicApp() {
@@ -69,6 +70,7 @@ export default function PublicApp() {
   }, []);
 
   const disabled = cfg?.publicEnabled === false;
+  const ytOn = cfg?.ytdlpEnabled === true;
   const domainHint = cfg?.allowAllDomains
     ? 'website apa pun'
     : cfg?.allowedDomains?.length
@@ -191,13 +193,31 @@ export default function PublicApp() {
             Download Video <span className="grad">Tanpa Ribet</span>
           </h1>
           <p className="hero-sub animate-in d1">
-            Tempel tautan video di bawah, lalu unduh videonya dalam kualitas terbaik langsung ke
-            perangkatmu. Tanpa watermark, tanpa aplikasi.
+            Tempel tautan video dari YouTube, TikTok, Instagram, dan lainnya — lalu unduh dalam
+            kualitas terbaik langsung ke perangkatmu. Tanpa watermark, tanpa aplikasi.
           </p>
           <div className="hero-sources fade-in d2">
             <span className="live-dot" aria-hidden="true" />
-            Mendukung <b>{domainHint}</b>
+            {ytOn ? (
+              <>
+                Mendukung <b>YouTube, TikTok, Instagram, X</b> &amp; 1000+ situs lain
+              </>
+            ) : (
+              <>
+                Mendukung <b>{domainHint}</b>
+              </>
+            )}
           </div>
+          {ytOn ? (
+            <div className="platform-badges fade-in d3" aria-label="Platform yang didukung">
+              {['YouTube', 'TikTok', 'Instagram', 'X', 'Facebook'].map((p) => (
+                <span className="platform-chip" key={p}>
+                  {p}
+                </span>
+              ))}
+              <span className="platform-chip more">+1000 lagi</span>
+            </div>
+          ) : null}
         </section>
 
         <section className="dl-card scale-in d1">
@@ -221,7 +241,11 @@ export default function PublicApp() {
                 spellCheck={false}
                 value={url}
                 disabled={disabled}
-                placeholder={`Tempel URL di sini, contoh: https://${sample}/e/xxxx`}
+                placeholder={
+                  ytOn
+                    ? 'Tempel URL video (YouTube, TikTok, Instagram, X…)'
+                    : `Tempel URL di sini, contoh: https://${sample}/e/xxxx`
+                }
                 onChange={(e) => setUrl(e.target.value)}
               />
               {url && !disabled ? (
@@ -401,8 +425,18 @@ export default function PublicApp() {
               <HelpCircle size={16} /> Tautan apa saja yang didukung?
             </summary>
             <div className="faq-body">
-              Saat ini kami mendukung tautan dari: <b>{domainHint}</b>. Tempel URL videonya secara
-              lengkap.
+              {ytOn ? (
+                <>
+                  Kami mendukung <b>YouTube, TikTok, Instagram, X/Twitter, Facebook</b>, dan
+                  ribuan situs lain. Cukup tempel URL video secara lengkap. Untuk situs yang butuh
+                  login (mis. Instagram/TikTok), admin dapat menambahkan cookies di pengaturan.
+                </>
+              ) : (
+                <>
+                  Saat ini kami mendukung tautan dari: <b>{domainHint}</b>. Tempel URL videonya
+                  secara lengkap.
+                </>
+              )}
             </div>
           </details>
           <details>

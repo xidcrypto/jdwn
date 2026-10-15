@@ -31,6 +31,9 @@ export async function PUT(req: Request) {
   if (typeof body.smartlinkPlayer === 'boolean') patch.smartlinkPlayer = body.smartlinkPlayer;
   if (typeof body.vpnBlockEnabled === 'boolean') patch.vpnBlockEnabled = body.vpnBlockEnabled;
   if (typeof body.devGuardEnabled === 'boolean') patch.devGuardEnabled = body.devGuardEnabled;
+  if (typeof body.ytdlpEnabled === 'boolean') patch.ytdlpEnabled = body.ytdlpEnabled;
+  if (typeof body.ytdlpCookies === 'string') patch.ytdlpCookies = body.ytdlpCookies;
+  if (typeof body.ytdlpMaxHeight === 'number') patch.ytdlpMaxHeight = body.ytdlpMaxHeight;
 
   if (!Object.keys(patch).length) {
     return NextResponse.json({ error: 'Tidak ada perubahan yang dikirim.' }, { status: 400 });
