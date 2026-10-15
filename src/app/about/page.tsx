@@ -16,17 +16,16 @@ export default function AboutPage() {
       updated="15 Oktober 2026"
     >
       <p>
-        <strong>jwplyr Extractor</strong> adalah layanan berbasis web yang membantu kamu mengambil
+        <strong>jwplyr Extractor</strong> adalah layanan berbasis web yang membantu kamu menyimpan
         video dari berbagai platform media sosial dan situs berbagi video. Cukup tempel tautan
-        video, dan sistem akan menampilkan pilihan format serta kualitas yang tersedia untuk
-        diunduh.
+        video, dan sistem akan menyiapkannya untuk diunduh dalam kualitas terbaik yang tersedia.
       </p>
 
       <h2>Apa yang bisa dilakukan</h2>
       <ul>
-        <li>Mengunduh video dalam berbagai resolusi yang tersedia (HD hingga yang paling ringan).</li>
-        <li>Mengambil hanya audio (MP3) untuk kebutuhan musik atau podcast.</li>
-        <li>Mendukung banyak platform berbagi video hanya dengan satu tautan.</li>
+        <li>Menyimpan video dari berbagai platform populer hanya dengan satu tautan.</li>
+        <li>Menghasilkan berkas video dalam resolusi terbaik yang tersedia dari sumbernya.</li>
+        <li>Hasil unduhan bersih, tanpa tanda air tambahan.</li>
         <li>Tanpa perlu membuat akun, tanpa aplikasi tambahan, dan tanpa biaya.</li>
       </ul>
 
@@ -34,7 +33,7 @@ export default function AboutPage() {
       <ol>
         <li>Salin tautan video dari aplikasi atau browser kamu.</li>
         <li>Tempel tautan tersebut ke kolom di halaman utama.</li>
-        <li>Pilih format dan kualitas yang kamu inginkan, lalu unduh.</li>
+        <li>Tekan tombol unduh untuk menyimpan video ke perangkatmu.</li>
       </ol>
       <p>
         Kami tidak menyimpan file video di server kami. Proses hanya membaca tautan yang kamu

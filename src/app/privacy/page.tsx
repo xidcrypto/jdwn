@@ -53,11 +53,11 @@ export default function PrivacyPage() {
         <li>Mendeteksi dan memblokir aktivitas mencurigakan sesuai kebijakan kami.</li>
       </ul>
 
-      <h2>3. Cookie & penyimpanan lokal</h2>
+      <h2>3. Penyimpanan lokal</h2>
       <p>
-        Kami dapat menggunakan cookie atau penyimpanan lokal (local storage) yang bersifat teknis
-        untuk menjaga sesi dan preferensi. Kami tidak menggunakan cookie untuk melacakmu di situs
-        lain. Kamu dapat menghapus cookie kapan saja melalui pengaturan browser.
+        Kami dapat menggunakan penyimpanan lokal (local storage) pada perangkatmu untuk keperluan
+        teknis, seperti menjaga sesi dan preferensi. Kami tidak menggunakannya untuk melacakmu di
+        situs lain. Kamu dapat menghapusnya kapan saja melalui pengaturan browser.
       </p>
 
       <h2>4. Layanan pihak ketiga</h2>
