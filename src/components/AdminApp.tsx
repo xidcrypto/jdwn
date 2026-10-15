@@ -80,6 +80,10 @@ interface AppSettings {
   adsEnabled: boolean;
   adDownloadCode: string;
   adPlayerCode: string;
+  smartlinkEnabled: boolean;
+  smartlinkUrl: string;
+  smartlinkDownload: boolean;
+  smartlinkPlayer: boolean;
 }
 
 interface DailyPoint {
@@ -1706,6 +1710,87 @@ export default function AdminApp() {
                             <span className="status-line">
                               {settings.adsEnabled ? 'Iklan aktif' : 'Iklan nonaktif'}
                             </span>
+                          </div>
+
+                          <div className="ad-divider">
+                            <Zap size={14} /> Smartlink Adsterra (Direct Link)
+                          </div>
+
+                          <div className="switch-row">
+                            <div>
+                              <div className="switch-title">Aktifkan smartlink</div>
+                              <div className="switch-desc">
+                                Buka tautan smartlink di tab baru (monetisasi) saat pengguna menekan
+                                tombol download / play.
+                              </div>
+                            </div>
+                            <button
+                              className={`switch ${settings.smartlinkEnabled ? 'on' : ''}`}
+                              aria-label="Aktif/nonaktif smartlink"
+                              onClick={() =>
+                                saveAppSettings({ smartlinkEnabled: !settings.smartlinkEnabled })
+                              }
+                            />
+                          </div>
+
+                          <div className="field">
+                            <label className="label" htmlFor="smartlinkUrl">
+                              <Link2 size={13} /> URL smartlink (Direct Link)
+                            </label>
+                            <div className="input-group">
+                              <input
+                                id="smartlinkUrl"
+                                className="input"
+                                type="url"
+                                value={settings.smartlinkUrl}
+                                placeholder="https://www.effectivegatecpm.com/xxxxxx"
+                                onChange={(e) =>
+                                  setSettings({ ...settings, smartlinkUrl: e.target.value })
+                                }
+                              />
+                              <button
+                                className="btn"
+                                onClick={() => saveAppSettings({ smartlinkUrl: settings.smartlinkUrl })}
+                                disabled={savingSettings}
+                              >
+                                <Save size={16} /> Simpan
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className={settings.smartlinkEnabled ? '' : 'disabled-soft'}>
+                            <div className="switch-row">
+                              <div>
+                                <div className="switch-title">Tampilkan saat klik Download</div>
+                                <div className="switch-desc">
+                                  Buka smartlink sebelum video mulai diunduh.
+                                </div>
+                              </div>
+                              <button
+                                className={`switch ${settings.smartlinkDownload ? 'on' : ''}`}
+                                aria-label="Smartlink saat download"
+                                disabled={!settings.smartlinkEnabled}
+                                onClick={() =>
+                                  saveAppSettings({ smartlinkDownload: !settings.smartlinkDownload })
+                                }
+                              />
+                            </div>
+                            <div className="switch-row">
+                              <div>
+                                <div className="switch-title">Tampilkan saat klik Play</div>
+                                <div className="switch-desc">
+                                  Buka smartlink saat pengguna memulai pemutaran video.
+                                </div>
+                              </div>
+                              <button
+                                className={`switch ${settings.smartlinkPlayer ? 'on' : ''}`}
+                                aria-label="Smartlink saat play"
+                                disabled={!settings.smartlinkEnabled}
+                                onClick={() =>
+                                  saveAppSettings({ smartlinkPlayer: !settings.smartlinkPlayer })
+                                }
+                              />
+                            </div>
                           </div>
                         </>
                       )}

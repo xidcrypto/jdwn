@@ -25,6 +25,10 @@ export async function PUT(req: Request) {
   if (typeof body.adsEnabled === 'boolean') patch.adsEnabled = body.adsEnabled;
   if (typeof body.adDownloadCode === 'string') patch.adDownloadCode = body.adDownloadCode;
   if (typeof body.adPlayerCode === 'string') patch.adPlayerCode = body.adPlayerCode;
+  if (typeof body.smartlinkEnabled === 'boolean') patch.smartlinkEnabled = body.smartlinkEnabled;
+  if (typeof body.smartlinkUrl === 'string') patch.smartlinkUrl = body.smartlinkUrl;
+  if (typeof body.smartlinkDownload === 'boolean') patch.smartlinkDownload = body.smartlinkDownload;
+  if (typeof body.smartlinkPlayer === 'boolean') patch.smartlinkPlayer = body.smartlinkPlayer;
 
   if (!Object.keys(patch).length) {
     return NextResponse.json({ error: 'Tidak ada perubahan yang dikirim.' }, { status: 400 });

@@ -9,6 +9,10 @@ export interface AppSettings {
   adsEnabled: boolean;
   adDownloadCode: string;
   adPlayerCode: string;
+  smartlinkEnabled: boolean;
+  smartlinkUrl: string;
+  smartlinkDownload: boolean;
+  smartlinkPlayer: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -20,6 +24,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   adsEnabled: false,
   adDownloadCode: '',
   adPlayerCode: '',
+  smartlinkEnabled: false,
+  smartlinkUrl: '',
+  smartlinkDownload: true,
+  smartlinkPlayer: false,
 };
 
 function parseBool(v: string | undefined, def: boolean): boolean {
@@ -114,6 +122,10 @@ export async function getSettings(): Promise<AppSettings> {
     adsEnabled: parseBool(map.adsEnabled, DEFAULT_SETTINGS.adsEnabled),
     adDownloadCode: map.adDownloadCode ?? DEFAULT_SETTINGS.adDownloadCode,
     adPlayerCode: map.adPlayerCode ?? DEFAULT_SETTINGS.adPlayerCode,
+    smartlinkEnabled: parseBool(map.smartlinkEnabled, DEFAULT_SETTINGS.smartlinkEnabled),
+    smartlinkUrl: map.smartlinkUrl ?? DEFAULT_SETTINGS.smartlinkUrl,
+    smartlinkDownload: parseBool(map.smartlinkDownload, DEFAULT_SETTINGS.smartlinkDownload),
+    smartlinkPlayer: parseBool(map.smartlinkPlayer, DEFAULT_SETTINGS.smartlinkPlayer),
   };
 }
 
@@ -142,6 +154,18 @@ export async function saveSettings(patch: Partial<AppSettings>): Promise<AppSett
   }
   if (patch.adPlayerCode !== undefined) {
     entries.push(['adPlayerCode', String(patch.adPlayerCode).slice(0, 20000)]);
+  }
+  if (patch.smartlinkEnabled !== undefined) {
+    entries.push(['smartlinkEnabled', patch.smartlinkEnabled ? '1' : '0']);
+  }
+  if (patch.smartlinkUrl !== undefined) {
+    entries.push(['smartlinkUrl', normalizeLink(String(patch.smartlinkUrl))]);
+  }
+  if (patch.smartlinkDownload !== undefined) {
+    entries.push(['smartlinkDownload', patch.smartlinkDownload ? '1' : '0']);
+  }
+  if (patch.smartlinkPlayer !== undefined) {
+    entries.push(['smartlinkPlayer', patch.smartlinkPlayer ? '1' : '0']);
   }
 
   await Promise.all(

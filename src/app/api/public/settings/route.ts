@@ -15,5 +15,9 @@ export async function GET() {
     adsEnabled: s.adsEnabled,
     adDownloadCode: s.adDownloadCode,
     adPlayerCode: s.adPlayerCode,
+    smartlinkEnabled: s.smartlinkEnabled,
+    smartlinkUrl: s.smartlinkUrl,
+    smartlinkDownload: s.smartlinkDownload,
+    smartlinkPlayer: s.smartlinkPlayer,
   });
 }

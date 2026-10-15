@@ -37,6 +37,10 @@ interface PublicSettings {
   adsEnabled: boolean;
   adDownloadCode: string;
   adPlayerCode: string;
+  smartlinkEnabled: boolean;
+  smartlinkUrl: string;
+  smartlinkDownload: boolean;
+  smartlinkPlayer: boolean;
 }
 
 export default function PublicApp() {
@@ -98,6 +102,31 @@ export default function PublicApp() {
 
   const siteName = cfg?.siteName || 'jwplyr Extractor';
   const showAds = cfg?.adsEnabled === true;
+  const smartlinkOnDownload = cfg?.smartlinkEnabled === true && cfg?.smartlinkDownload === true;
+  const smartlinkOnPlay = cfg?.smartlinkEnabled === true && cfg?.smartlinkPlayer === true;
+
+  const openSmartlink = () => {
+    const link = cfg?.smartlinkUrl;
+    if (!link) return;
+    window.open(link, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleDownload = () => {
+    if (smartlinkOnDownload) openSmartlink();
+    if (!result) return;
+    const a = document.createElement('a');
+    a.href = result.downloadUrl;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  const togglePlayer = () => {
+    const next = !showPlayer;
+    if (next && smartlinkOnPlay) openSmartlink();
+    setShowPlayer(next);
+  };
 
   return (
     <div className="pub">
@@ -198,10 +227,10 @@ export default function PublicApp() {
                     </span>
                   </div>
                   <div className="result-actions">
-                    <a className="btn" href={result.downloadUrl}>
+                    <button className="btn" onClick={handleDownload}>
                       <Download size={17} /> Download MP4
-                    </a>
-                    <button className="btn ghost" onClick={() => setShowPlayer((s) => !s)}>
+                    </button>
+                    <button className="btn ghost" onClick={togglePlayer}>
                       {showPlayer ? <Film size={17} /> : <Play size={17} />}
                       {showPlayer ? 'Sembunyikan' : 'Putar dulu'}
                     </button>
