@@ -19,6 +19,34 @@ export function todayKey(d = new Date()): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Log aktivitas disimpan maksimal 24 jam, lalu dihapus otomatis. */
+export const LOG_TTL_MS = 24 * 60 * 60 * 1000;
+const PRUNE_INTERVAL_MS = 30 * 60 * 1000;
+let lastPruneAt = 0;
+
+/**
+ * Hapus log aktivitas yang lebih tua dari 24 jam.
+ * Dijalankan berkala (maks. tiap 30 menit) saat ada aktivitas, atau dipaksa saat log dibuka.
+ */
+export async function pruneActivityLogs(force = false): Promise<number> {
+  const now = Date.now();
+  if (!force && now - lastPruneAt < PRUNE_INTERVAL_MS) return 0;
+  lastPruneAt = now;
+  try {
+    const res = await prisma.activityLog.deleteMany({
+      where: { createdAt: { lt: new Date(now - LOG_TTL_MS) } },
+    });
+    return res.count;
+  } catch {
+    return 0;
+  }
+}
+
+/** Batas waktu (>=) untuk log yang masih berlaku. */
+export function logSince(): Date {
+  return new Date(Date.now() - LOG_TTL_MS);
+}
+
 interface RequestMeta {
   ip: string;
   ua: string | null;
@@ -95,6 +123,7 @@ export async function recordExtract(
         isVpn: meta.isVpn,
       },
     }),
+    pruneActivityLogs(),
   ]);
 }
 
@@ -122,6 +151,7 @@ export async function recordDownload(
         isVpn: meta.isVpn,
       },
     }),
+    pruneActivityLogs(),
   ]);
 }
 
@@ -143,6 +173,7 @@ export async function recordBlocked(
       isVpn: meta.isVpn,
     },
   });
+  void pruneActivityLogs();
 }
 
 export interface DailyPoint {
@@ -179,9 +210,11 @@ export async function getAccessData(
   limit = 200,
   type?: string,
 ): Promise<{ logs: AccessLog[]; visitors: VisitorRow[] }> {
+  await pruneActivityLogs(true);
+  const since = logSince();
   const [logs, visitors] = await Promise.all([
     prisma.activityLog.findMany({
-      where: type ? { type } : undefined,
+      where: { createdAt: { gte: since }, ...(type ? { type } : {}) },
       orderBy: { id: 'desc' },
       take: Math.min(Math.max(limit, 1), 500),
     }),
@@ -241,6 +274,8 @@ export interface StatsResult {
 export async function getStats(days = 7): Promise<StatsResult> {
   const date = todayKey();
   const now = new Date();
+  const since = logSince();
+  void pruneActivityLogs();
 
   const [
     uniqueVisitors,
@@ -268,13 +303,17 @@ export async function getStats(days = 7): Promise<StatsResult> {
     prisma.proxy.count({ where: { enabled: true } }),
     prisma.proxy.count({ where: { enabled: false } }),
     prisma.session.count({ where: { expiresAt: { gt: now } } }),
-    prisma.activityLog.count({ where: { type: 'blocked' } }),
+    prisma.activityLog.count({ where: { type: 'blocked', createdAt: { gte: since } } }),
     prisma.visitor.count({ where: { isVpn: true } }),
     prisma.dailyStat.findMany({
       where: { date: { gte: todayKey(new Date(now.getTime() - (days - 1) * 86400000)) } },
       orderBy: { date: 'asc' },
     }),
-    prisma.activityLog.findMany({ orderBy: { id: 'desc' }, take: 15 }),
+    prisma.activityLog.findMany({
+      where: { createdAt: { gte: since } },
+      orderBy: { id: 'desc' },
+      take: 15,
+    }),
   ]);
 
   const byDate = new Map(dailyRows.map((r) => [r.date, r]));

@@ -7,6 +7,10 @@ import {
   Ban,
   BarChart3,
   Check,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   CircleAlert,
   CircleCheck,
   ClipboardList,
@@ -518,6 +522,10 @@ export default function AdminApp() {
   const [logsLoading, setLogsLoading] = useState(false);
   const [logType, setLogType] = useState('');
   const [logQuery, setLogQuery] = useState('');
+  const [logPage, setLogPage] = useState(1);
+  const [logPageSize, setLogPageSize] = useState(10);
+  const [visitorPage, setVisitorPage] = useState(1);
+  const [visitorPageSize, setVisitorPageSize] = useState(10);
   const [logDetail, setLogDetail] = useState<AccessLogRow | null>(null);
   const [visitorDetail, setVisitorDetail] = useState<VisitorLogRow | null>(null);
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -685,6 +693,14 @@ export default function AdminApp() {
       loadSettings();
     }
   }, [token, loadProxies, loadStats, loadLogs, loadSettings]);
+
+  useEffect(() => {
+    setLogPage(1);
+  }, [logType, logQuery, logPageSize]);
+
+  useEffect(() => {
+    setVisitorPage(1);
+  }, [visitorPageSize]);
 
   /* ---------------- auth ---------------- */
 
@@ -1169,7 +1185,21 @@ export default function AdminApp() {
     download: logRows.filter((l) => l.type === 'download').length,
     blocked: logRows.filter((l) => l.type !== 'extract' && l.type !== 'download').length,
   };
+  const logTotal = filteredLogs.length;
+  const logTotalPages = Math.max(1, Math.ceil(logTotal / logPageSize));
+  const logPageSafe = Math.min(Math.max(logPage, 1), logTotalPages);
+  const logStart = logTotal ? (logPageSafe - 1) * logPageSize : 0;
+  const logEnd = Math.min(logStart + logPageSize, logTotal);
+  const pagedLogs = filteredLogs.slice(logStart, logEnd);
   const logDetailUA = logDetail ? parseUA(logDetail.ua) : null;
+
+  const visitorRows = logs?.visitors ?? [];
+  const visitorTotal = visitorRows.length;
+  const visitorTotalPages = Math.max(1, Math.ceil(visitorTotal / visitorPageSize));
+  const visitorPageSafe = Math.min(Math.max(visitorPage, 1), visitorTotalPages);
+  const visitorStart = visitorTotal ? (visitorPageSafe - 1) * visitorPageSize : 0;
+  const visitorEnd = Math.min(visitorStart + visitorPageSize, visitorTotal);
+  const pagedVisitors = visitorRows.slice(visitorStart, visitorEnd);
   const visitorDetailUA = visitorDetail ? parseUA(visitorDetail.userAgent) : null;
 
   const maxDaily = Math.max(1, ...(stats?.daily.flatMap((d) => [d.visits, d.extracts, d.downloads]) ?? [1]));
@@ -1806,6 +1836,7 @@ export default function AdminApp() {
                           }
                         />
                       ) : (
+                        <>
                         <div className="table-wrap">
                           <table className="table log-table">
                             <thead>
@@ -1820,7 +1851,7 @@ export default function AdminApp() {
                               </tr>
                             </thead>
                             <tbody>
-                              {filteredLogs.map((l) => {
+                              {pagedLogs.map((l) => {
                                 const ua = parseUA(l.ua);
                                 return (
                                   <tr
@@ -1880,6 +1911,71 @@ export default function AdminApp() {
                             </tbody>
                           </table>
                         </div>
+                        <div className="dt-foot">
+                          <div className="dt-foot-info">
+                            Menampilkan <b>{logStart + 1}</b>–<b>{logEnd}</b> dari{' '}
+                            <b>{logTotal}</b> log
+                            <span className="dt-ttl"> · otomatis terhapus setelah 24 jam</span>
+                          </div>
+                          <div className="dt-foot-ctrl">
+                            <label className="dt-size">
+                              Baris
+                              <select
+                                value={logPageSize}
+                                onChange={(e) => setLogPageSize(Number(e.target.value))}
+                                aria-label="Jumlah baris per halaman"
+                              >
+                                {[10, 25, 50, 100].map((n) => (
+                                  <option key={n} value={n}>
+                                    {n}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <div className="dt-pager">
+                              <button
+                                type="button"
+                                className="btn ghost icon sm"
+                                onClick={() => setLogPage(1)}
+                                disabled={logPageSafe <= 1}
+                                aria-label="Halaman pertama"
+                              >
+                                <ChevronsLeft size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn ghost icon sm"
+                                onClick={() => setLogPage(logPageSafe - 1)}
+                                disabled={logPageSafe <= 1}
+                                aria-label="Halaman sebelumnya"
+                              >
+                                <ChevronLeft size={15} />
+                              </button>
+                              <span className="dt-page">
+                                {logPageSafe} / {logTotalPages}
+                              </span>
+                              <button
+                                type="button"
+                                className="btn ghost icon sm"
+                                onClick={() => setLogPage(logPageSafe + 1)}
+                                disabled={logPageSafe >= logTotalPages}
+                                aria-label="Halaman berikutnya"
+                              >
+                                <ChevronRight size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn ghost icon sm"
+                                onClick={() => setLogPage(logTotalPages)}
+                                disabled={logPageSafe >= logTotalPages}
+                                aria-label="Halaman terakhir"
+                              >
+                                <ChevronsRight size={15} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        </>
                       )}
                     </div>
 
@@ -1901,6 +1997,7 @@ export default function AdminApp() {
                           sub="Pengunjung unik akan muncul setelah ada kunjungan."
                         />
                       ) : (
+                        <>
                         <div className="table-wrap">
                           <table className="table log-table">
                             <thead>
@@ -1914,7 +2011,7 @@ export default function AdminApp() {
                               </tr>
                             </thead>
                             <tbody>
-                              {logs.visitors.map((v) => {
+                              {pagedVisitors.map((v) => {
                                 const ua = parseUA(v.userAgent);
                                 return (
                                   <tr
@@ -1965,6 +2062,70 @@ export default function AdminApp() {
                             </tbody>
                           </table>
                         </div>
+                        <div className="dt-foot">
+                          <div className="dt-foot-info">
+                            Menampilkan <b>{visitorStart + 1}</b>–<b>{visitorEnd}</b> dari{' '}
+                            <b>{visitorTotal}</b> IP unik
+                          </div>
+                          <div className="dt-foot-ctrl">
+                            <label className="dt-size">
+                              Baris
+                              <select
+                                value={visitorPageSize}
+                                onChange={(e) => setVisitorPageSize(Number(e.target.value))}
+                                aria-label="Jumlah baris per halaman"
+                              >
+                                {[10, 25, 50, 100].map((n) => (
+                                  <option key={n} value={n}>
+                                    {n}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <div className="dt-pager">
+                              <button
+                                type="button"
+                                className="btn ghost icon sm"
+                                onClick={() => setVisitorPage(1)}
+                                disabled={visitorPageSafe <= 1}
+                                aria-label="Halaman pertama"
+                              >
+                                <ChevronsLeft size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn ghost icon sm"
+                                onClick={() => setVisitorPage(visitorPageSafe - 1)}
+                                disabled={visitorPageSafe <= 1}
+                                aria-label="Halaman sebelumnya"
+                              >
+                                <ChevronLeft size={15} />
+                              </button>
+                              <span className="dt-page">
+                                {visitorPageSafe} / {visitorTotalPages}
+                              </span>
+                              <button
+                                type="button"
+                                className="btn ghost icon sm"
+                                onClick={() => setVisitorPage(visitorPageSafe + 1)}
+                                disabled={visitorPageSafe >= visitorTotalPages}
+                                aria-label="Halaman berikutnya"
+                              >
+                                <ChevronRight size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn ghost icon sm"
+                                onClick={() => setVisitorPage(visitorTotalPages)}
+                                disabled={visitorPageSafe >= visitorTotalPages}
+                                aria-label="Halaman terakhir"
+                              >
+                                <ChevronsRight size={15} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        </>
                       )}
                     </div>
                   </>
