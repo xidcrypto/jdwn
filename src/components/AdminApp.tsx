@@ -6,6 +6,7 @@ import {
   Activity,
   BarChart3,
   Check,
+  ClipboardList,
   CircleAlert,
   CircleCheck,
   Copy,
@@ -68,7 +69,7 @@ interface ExtractData {
 }
 
 type ApiOpts = RequestInit & { headers?: Record<string, string> };
-type View = 'dashboard' | 'proxies' | 'extract' | 'settings';
+type View = 'dashboard' | 'proxies' | 'extract' | 'logs' | 'settings';
 type ToastType = 'ok' | 'err' | 'info';
 
 interface AppSettings {
@@ -84,6 +85,36 @@ interface AppSettings {
   smartlinkUrl: string;
   smartlinkDownload: boolean;
   smartlinkPlayer: boolean;
+  vpnBlockEnabled: boolean;
+  devGuardEnabled: boolean;
+}
+
+interface AccessLogRow {
+  id: number;
+  type: string;
+  detail: string | null;
+  ip: string | null;
+  ua: string | null;
+  country: string | null;
+  isVpn: boolean;
+  ok: boolean;
+  createdAt: string;
+}
+
+interface VisitorLogRow {
+  id: number;
+  ip: string | null;
+  country: string | null;
+  isVpn: boolean;
+  hits: number;
+  userAgent: string | null;
+  firstSeen: string;
+  lastSeen: string;
+}
+
+interface LogsData {
+  logs: AccessLogRow[];
+  visitors: VisitorLogRow[];
 }
 
 interface DailyPoint {
@@ -106,6 +137,8 @@ interface StatsData {
   proxyActive: number;
   proxyDisabled: number;
   activeSessions: number;
+  blockedTotal: number;
+  vpnVisitors: number;
   daily: DailyPoint[];
   activity: Array<{
     id: number;
@@ -303,6 +336,9 @@ export default function AdminApp() {
 
   const [stats, setStats] = useState<StatsData | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [logs, setLogs] = useState<LogsData | null>(null);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logType, setLogType] = useState('');
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [domainInput, setDomainInput] = useState('');
@@ -335,6 +371,7 @@ export default function AdminApp() {
     setEmail('');
     setProxies([]);
     setStats(null);
+    setLogs(null);
     setSettings(null);
     setExData(null);
     setView('dashboard');
@@ -392,6 +429,22 @@ export default function AdminApp() {
     }
   }, [api, push]);
 
+  const loadLogs = useCallback(
+    async (type = '') => {
+      setLogsLoading(true);
+      try {
+        const q = type ? `?type=${encodeURIComponent(type)}` : '';
+        const d = await api<LogsData>('/api/logs' + q);
+        setLogs(d);
+      } catch (e) {
+        push('err', 'Gagal memuat log', (e as Error).message);
+      } finally {
+        setLogsLoading(false);
+      }
+    },
+    [api, push],
+  );
+
   const loadSettings = useCallback(async () => {
     setSettingsLoading(true);
     try {
@@ -443,9 +496,10 @@ export default function AdminApp() {
     if (token) {
       loadProxies();
       loadStats();
+      loadLogs('');
       loadSettings();
     }
-  }, [token, loadProxies, loadStats, loadSettings]);
+  }, [token, loadProxies, loadStats, loadLogs, loadSettings]);
 
   /* ---------------- auth ---------------- */
 
@@ -874,6 +928,7 @@ export default function AdminApp() {
     { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { key: 'proxies', label: 'Proxy', icon: Server, count: proxies.length },
     { key: 'extract', label: 'Extract', icon: Play },
+    { key: 'logs', label: 'Log Akses', icon: ClipboardList },
     { key: 'settings', label: 'Pengaturan', icon: Settings },
   ];
 
@@ -892,6 +947,11 @@ export default function AdminApp() {
       title: 'Ekstraksi Video',
       sub: 'Ambil URL video asli langsung dari halaman embed.',
       icon: Play,
+    },
+    logs: {
+      title: 'Log Akses',
+      sub: 'Rekaman penggunaan: IP, perangkat, negara, dan status VPN.',
+      icon: ClipboardList,
     },
     settings: {
       title: 'Pengaturan',
@@ -1037,6 +1097,21 @@ export default function AdminApp() {
                         label="Sesi admin aktif"
                         value={stats?.activeSessions ?? 0}
                         sub="perangkat login"
+                      />
+                    </div>
+
+                    <div className="grid cols-2" style={{ marginBottom: 18 }}>
+                      <MiniStat
+                        icon={ShieldCheck}
+                        label="VPN/proxy diblokir"
+                        value={stats?.blockedTotal ?? 0}
+                        sub="percobaan ditolak"
+                      />
+                      <MiniStat
+                        icon={Users}
+                        label="Pengunjung terdeteksi VPN"
+                        value={stats?.vpnVisitors ?? 0}
+                        sub="IP unik"
                       />
                     </div>
 
@@ -1449,6 +1524,143 @@ export default function AdminApp() {
                   </div>
                 ) : null}
 
+                {/* ---------------- LOG AKSES ---------------- */}
+                {view === 'logs' ? (
+                  <>
+                    <div className="card d1 animate-in">
+                      <div className="card-head">
+                        <span className="head-icon">
+                          <ClipboardList size={16} />
+                        </span>
+                        <h2>Log Aktivitas</h2>
+                        <div className="spacer" />
+                        <button
+                          className="btn ghost sm"
+                          onClick={() => loadLogs(logType)}
+                          disabled={logsLoading}
+                        >
+                          <RefreshCw size={14} className={logsLoading ? 'spinner' : ''} /> Muat ulang
+                        </button>
+                      </div>
+
+                      <div className="log-filters">
+                        {[
+                          { key: '', label: 'Semua' },
+                          { key: 'extract', label: 'Ekstraksi' },
+                          { key: 'download', label: 'Download' },
+                          { key: 'blocked', label: 'Diblokir' },
+                        ].map((f) => (
+                          <button
+                            key={f.key || 'all'}
+                            className={`chip ${logType === f.key ? 'active' : ''}`}
+                            onClick={() => {
+                              setLogType(f.key);
+                              loadLogs(f.key);
+                            }}
+                          >
+                            {f.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {!logs ? (
+                        <div className="skeleton" style={{ height: 160, borderRadius: 12 }} />
+                      ) : !logs.logs.length ? (
+                        <p className="hint">Belum ada log untuk filter ini.</p>
+                      ) : (
+                        <div className="table-wrap">
+                          <table className="table">
+                            <thead>
+                              <tr>
+                                <th>Waktu</th>
+                                <th>Tipe</th>
+                                <th>IP</th>
+                                <th>Negara</th>
+                                <th>Perangkat (UA)</th>
+                                <th>Detail</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {logs.logs.map((l) => (
+                                <tr key={l.id} className={l.isVpn ? 'row-warn' : ''}>
+                                  <td className="nowrap mono">{fmtDate(l.createdAt)}</td>
+                                  <td>
+                                    <span className={`log-type ${l.type} ${l.ok ? '' : 'bad'}`}>
+                                      {l.type === 'extract'
+                                        ? 'Ekstraksi'
+                                        : l.type === 'download'
+                                          ? 'Download'
+                                          : 'Diblokir'}
+                                    </span>
+                                  </td>
+                                  <td className="mono nowrap">
+                                    {l.ip || '—'}
+                                    {l.isVpn ? <span className="vpn-tag">VPN</span> : null}
+                                  </td>
+                                  <td className="nowrap">{l.country || '—'}</td>
+                                  <td className="ua-cell" title={l.ua || ''}>
+                                    {l.ua || '—'}
+                                  </td>
+                                  <td className="detail-cell mono" title={l.detail || ''}>
+                                    {l.detail || '—'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="card d2 animate-in">
+                      <div className="card-head">
+                        <span className="head-icon">
+                          <Users size={16} />
+                        </span>
+                        <h2>Pengunjung (IP unik)</h2>
+                        <div className="spacer" />
+                        <span className="status-line">{logs?.visitors.length ?? 0} IP</span>
+                      </div>
+
+                      {!logs ? (
+                        <div className="skeleton" style={{ height: 120, borderRadius: 12 }} />
+                      ) : !logs.visitors.length ? (
+                        <p className="hint">Belum ada pengunjung terekam.</p>
+                      ) : (
+                        <div className="table-wrap">
+                          <table className="table">
+                            <thead>
+                              <tr>
+                                <th>IP</th>
+                                <th>Negara</th>
+                                <th>Kunjungan</th>
+                                <th>Perangkat (UA)</th>
+                                <th>Terakhir</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {logs.visitors.map((v) => (
+                                <tr key={v.id} className={v.isVpn ? 'row-warn' : ''}>
+                                  <td className="mono nowrap">
+                                    {v.ip || '—'}
+                                    {v.isVpn ? <span className="vpn-tag">VPN</span> : null}
+                                  </td>
+                                  <td className="nowrap">{v.country || '—'}</td>
+                                  <td>{v.hits}</td>
+                                  <td className="ua-cell" title={v.userAgent || ''}>
+                                    {v.userAgent || '—'}
+                                  </td>
+                                  <td className="nowrap mono">{fmtDate(v.lastSeen)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : null}
+
                 {/* ---------------- SETTINGS ---------------- */}
                 {view === 'settings' ? (
                   <>
@@ -1626,6 +1838,56 @@ export default function AdminApp() {
                                 <span className="hint">Belum ada link spesifik.</span>
                               )}
                             </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="card d1 animate-in">
+                      <div className="card-head">
+                        <span className="head-icon">
+                          <ShieldCheck size={16} />
+                        </span>
+                        <h2>Keamanan</h2>
+                      </div>
+
+                      {!settings ? (
+                        <div className="skeleton" style={{ height: 110, borderRadius: 12 }} />
+                      ) : (
+                        <>
+                          <div className="switch-row">
+                            <div>
+                              <div className="switch-title">Blokir VPN / Proxy</div>
+                              <div className="switch-desc">
+                                Tolak ekstraksi &amp; download dari jaringan VPN, proxy, atau
+                                datacenter (deteksi otomatis via ip-api.com). Admin yang login
+                                di-bypass.
+                              </div>
+                            </div>
+                            <button
+                              className={`switch ${settings.vpnBlockEnabled ? 'on' : ''}`}
+                              aria-label="Aktif/nonaktif blokir VPN"
+                              onClick={() =>
+                                saveAppSettings({ vpnBlockEnabled: !settings.vpnBlockEnabled })
+                              }
+                            />
+                          </div>
+
+                          <div className="switch-row">
+                            <div>
+                              <div className="switch-title">Blokir Inspect Element</div>
+                              <div className="switch-desc">
+                                Nonaktifkan klik kanan &amp; tombol pintas DevTools di halaman
+                                publik, serta tampilkan peringatan bila DevTools terbuka.
+                              </div>
+                            </div>
+                            <button
+                              className={`switch ${settings.devGuardEnabled ? 'on' : ''}`}
+                              aria-label="Aktif/nonaktif blokir inspect element"
+                              onClick={() =>
+                                saveAppSettings({ devGuardEnabled: !settings.devGuardEnabled })
+                              }
+                            />
                           </div>
                         </>
                       )}

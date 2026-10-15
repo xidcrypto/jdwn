@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { prisma } from './prisma';
+import type { VpnInfo } from './vpn';
 
 const SECRET =
   process.env.JWT_SECRET || process.env.APP_SECRET || 'dev-insecure-secret-change-me';
@@ -18,16 +19,46 @@ export function todayKey(d = new Date()): string {
   return d.toISOString().slice(0, 10);
 }
 
-export async function recordVisit(req: Request): Promise<void> {
-  const hash = hashIp(clientIp(req));
-  const ua = (req.headers.get('user-agent') || '').slice(0, 300) || null;
+interface RequestMeta {
+  ip: string;
+  ua: string | null;
+  country: string | null;
+  isVpn: boolean;
+}
+
+function requestMeta(req: Request, vpn?: VpnInfo): RequestMeta {
+  return {
+    ip: clientIp(req),
+    ua: (req.headers.get('user-agent') || '').slice(0, 300) || null,
+    country: vpn?.country ?? null,
+    isVpn: vpn?.isVpn ?? false,
+  };
+}
+
+export async function recordVisit(req: Request, vpn?: VpnInfo): Promise<void> {
+  const ip = clientIp(req);
+  const hash = hashIp(ip);
+  const meta = requestMeta(req, vpn);
   const date = todayKey();
 
   await Promise.all([
     prisma.visitor.upsert({
       where: { ipHash: hash },
-      update: { hits: { increment: 1 }, userAgent: ua ?? undefined },
-      create: { ipHash: hash, hits: 1, userAgent: ua },
+      update: {
+        hits: { increment: 1 },
+        userAgent: meta.ua ?? undefined,
+        ip: meta.ip,
+        country: meta.country ?? undefined,
+        isVpn: meta.isVpn,
+      },
+      create: {
+        ipHash: hash,
+        hits: 1,
+        userAgent: meta.ua,
+        ip: meta.ip,
+        country: meta.country,
+        isVpn: meta.isVpn,
+      },
     }),
     prisma.dailyStat.upsert({
       where: { date },
@@ -37,8 +68,14 @@ export async function recordVisit(req: Request): Promise<void> {
   ]);
 }
 
-export async function recordExtract(ok: boolean, detail?: string): Promise<void> {
+export async function recordExtract(
+  req: Request,
+  ok: boolean,
+  detail?: string,
+  vpn?: VpnInfo,
+): Promise<void> {
   const date = todayKey();
+  const meta = requestMeta(req, vpn);
   await Promise.all([
     prisma.dailyStat.upsert({
       where: { date },
@@ -48,13 +85,26 @@ export async function recordExtract(ok: boolean, detail?: string): Promise<void>
       create: { date, extracts: 1, ok: ok ? 1 : 0, failed: ok ? 0 : 1 },
     }),
     prisma.activityLog.create({
-      data: { type: 'extract', ok, detail: detail?.slice(0, 300) || null },
+      data: {
+        type: 'extract',
+        ok,
+        detail: detail?.slice(0, 300) || null,
+        ip: meta.ip,
+        ua: meta.ua,
+        country: meta.country,
+        isVpn: meta.isVpn,
+      },
     }),
   ]);
 }
 
-export async function recordDownload(detail?: string): Promise<void> {
+export async function recordDownload(
+  req: Request,
+  detail?: string,
+  vpn?: VpnInfo,
+): Promise<void> {
   const date = todayKey();
+  const meta = requestMeta(req, vpn);
   await Promise.all([
     prisma.dailyStat.upsert({
       where: { date },
@@ -62,9 +112,37 @@ export async function recordDownload(detail?: string): Promise<void> {
       create: { date, downloads: 1 },
     }),
     prisma.activityLog.create({
-      data: { type: 'download', ok: true, detail: detail?.slice(0, 300) || null },
+      data: {
+        type: 'download',
+        ok: true,
+        detail: detail?.slice(0, 300) || null,
+        ip: meta.ip,
+        ua: meta.ua,
+        country: meta.country,
+        isVpn: meta.isVpn,
+      },
     }),
   ]);
+}
+
+/** Catat percobaan yang diblokir (mis. VPN/proxy terdeteksi). */
+export async function recordBlocked(
+  req: Request,
+  detail?: string,
+  vpn?: VpnInfo,
+): Promise<void> {
+  const meta = requestMeta(req, vpn);
+  await prisma.activityLog.create({
+    data: {
+      type: 'blocked',
+      ok: false,
+      detail: detail?.slice(0, 300) || null,
+      ip: meta.ip,
+      ua: meta.ua,
+      country: meta.country,
+      isVpn: meta.isVpn,
+    },
+  });
 }
 
 export interface DailyPoint {
@@ -72,6 +150,67 @@ export interface DailyPoint {
   visits: number;
   extracts: number;
   downloads: number;
+}
+
+export interface AccessLog {
+  id: number;
+  type: string;
+  detail: string | null;
+  ip: string | null;
+  ua: string | null;
+  country: string | null;
+  isVpn: boolean;
+  ok: boolean;
+  createdAt: string;
+}
+
+export interface VisitorRow {
+  id: number;
+  ip: string | null;
+  country: string | null;
+  isVpn: boolean;
+  hits: number;
+  userAgent: string | null;
+  firstSeen: string;
+  lastSeen: string;
+}
+
+export async function getAccessData(
+  limit = 200,
+  type?: string,
+): Promise<{ logs: AccessLog[]; visitors: VisitorRow[] }> {
+  const [logs, visitors] = await Promise.all([
+    prisma.activityLog.findMany({
+      where: type ? { type } : undefined,
+      orderBy: { id: 'desc' },
+      take: Math.min(Math.max(limit, 1), 500),
+    }),
+    prisma.visitor.findMany({ orderBy: { lastSeen: 'desc' }, take: 200 }),
+  ]);
+
+  return {
+    logs: logs.map((l) => ({
+      id: l.id,
+      type: l.type,
+      detail: l.detail,
+      ip: l.ip,
+      ua: l.ua,
+      country: l.country,
+      isVpn: l.isVpn,
+      ok: l.ok,
+      createdAt: l.createdAt.toISOString(),
+    })),
+    visitors: visitors.map((v) => ({
+      id: v.id,
+      ip: v.ip,
+      country: v.country,
+      isVpn: v.isVpn,
+      hits: v.hits,
+      userAgent: v.userAgent,
+      firstSeen: v.firstSeen.toISOString(),
+      lastSeen: v.lastSeen.toISOString(),
+    })),
+  };
 }
 
 export interface StatsResult {
@@ -87,6 +226,8 @@ export interface StatsResult {
   proxyActive: number;
   proxyDisabled: number;
   activeSessions: number;
+  blockedTotal: number;
+  vpnVisitors: number;
   daily: DailyPoint[];
   activity: Array<{
     id: number;
@@ -112,6 +253,8 @@ export async function getStats(days = 7): Promise<StatsResult> {
     proxyActive,
     proxyDisabled,
     activeSessions,
+    blockedTotal,
+    vpnVisitors,
     dailyRows,
     activity,
   ] = await Promise.all([
@@ -125,6 +268,8 @@ export async function getStats(days = 7): Promise<StatsResult> {
     prisma.proxy.count({ where: { enabled: true } }),
     prisma.proxy.count({ where: { enabled: false } }),
     prisma.session.count({ where: { expiresAt: { gt: now } } }),
+    prisma.activityLog.count({ where: { type: 'blocked' } }),
+    prisma.visitor.count({ where: { isVpn: true } }),
     prisma.dailyStat.findMany({
       where: { date: { gte: todayKey(new Date(now.getTime() - (days - 1) * 86400000)) } },
       orderBy: { date: 'asc' },
@@ -158,6 +303,8 @@ export async function getStats(days = 7): Promise<StatsResult> {
     proxyActive,
     proxyDisabled,
     activeSessions,
+    blockedTotal,
+    vpnVisitors,
     daily,
     activity: activity.map((a) => ({
       id: a.id,

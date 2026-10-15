@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
+import { getSession } from '@/lib/auth';
 import { verifyPayload } from '@/lib/sign';
 import { buildVideoResponse } from '@/lib/videoResponse';
-import { recordDownload } from '@/lib/stats';
+import { recordDownload, recordBlocked } from '@/lib/stats';
+import { getSettings } from '@/lib/settings';
+import { checkVpnForRequest } from '@/lib/vpn';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -24,9 +27,23 @@ async function handle(req: Request) {
     );
   }
 
+  // Blokir VPN/proxy/datacenter. Admin yang login di-bypass.
+  const settings = await getSettings();
+  const vpn = await checkVpnForRequest(req);
+  if (settings.vpnBlockEnabled && vpn.isVpn) {
+    const sess = await getSession(req).catch(() => null);
+    if (!sess) {
+      await recordBlocked(req, `VPN/proxy ditolak unduh: ${payload.t}`, vpn).catch(() => undefined);
+      return NextResponse.json(
+        { error: 'VPN/proxy terdeteksi. Matikan VPN lalu coba lagi.', vpn: true },
+        { status: 403 },
+      );
+    }
+  }
+
   const download = u.searchParams.get('download') === '1';
   if (download) {
-    recordDownload(payload.t).catch(() => undefined);
+    recordDownload(req, payload.t, vpn).catch(() => undefined);
   }
 
   return buildVideoResponse({

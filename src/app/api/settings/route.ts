@@ -29,6 +29,8 @@ export async function PUT(req: Request) {
   if (typeof body.smartlinkUrl === 'string') patch.smartlinkUrl = body.smartlinkUrl;
   if (typeof body.smartlinkDownload === 'boolean') patch.smartlinkDownload = body.smartlinkDownload;
   if (typeof body.smartlinkPlayer === 'boolean') patch.smartlinkPlayer = body.smartlinkPlayer;
+  if (typeof body.vpnBlockEnabled === 'boolean') patch.vpnBlockEnabled = body.vpnBlockEnabled;
+  if (typeof body.devGuardEnabled === 'boolean') patch.devGuardEnabled = body.devGuardEnabled;
 
   if (!Object.keys(patch).length) {
     return NextResponse.json({ error: 'Tidak ada perubahan yang dikirim.' }, { status: 400 });

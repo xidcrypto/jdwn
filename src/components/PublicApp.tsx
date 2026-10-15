@@ -18,6 +18,7 @@ import {
   Zap,
 } from 'lucide-react';
 import AdSlot from './AdSlot';
+import DevGuard from './DevGuard';
 
 interface PublicResult {
   videoId: string;
@@ -41,6 +42,8 @@ interface PublicSettings {
   smartlinkUrl: string;
   smartlinkDownload: boolean;
   smartlinkPlayer: boolean;
+  devGuardEnabled: boolean;
+  vpnBlockEnabled: boolean;
 }
 
 export default function PublicApp() {
@@ -49,6 +52,7 @@ export default function PublicApp() {
   const [error, setError] = useState('');
   const [result, setResult] = useState<PublicResult | null>(null);
   const [showPlayer, setShowPlayer] = useState(false);
+  const [vpnBlocked, setVpnBlocked] = useState(false);
   const [cfg, setCfg] = useState<PublicSettings | null>(null);
 
   useEffect(() => {
@@ -75,6 +79,7 @@ export default function PublicApp() {
     }
     setBusy(true);
     setError('');
+    setVpnBlocked(false);
     setResult(null);
     setShowPlayer(false);
     try {
@@ -83,8 +88,14 @@ export default function PublicApp() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: clean }),
       });
-      const data = (await r.json().catch(() => ({}))) as PublicResult & { error?: string };
-      if (!r.ok || !data.downloadUrl) throw new Error(data.error || 'Gagal mengekstrak video.');
+      const data = (await r.json().catch(() => ({}))) as PublicResult & {
+        error?: string;
+        vpn?: boolean;
+      };
+      if (!r.ok || !data.downloadUrl) {
+        if (data.vpn) setVpnBlocked(true);
+        throw new Error(data.error || 'Gagal mengekstrak video.');
+      }
       setResult(data);
     } catch (e) {
       setError((e as Error).message);
@@ -130,6 +141,7 @@ export default function PublicApp() {
 
   return (
     <div className="pub">
+      <DevGuard enabled={cfg?.devGuardEnabled === true} />
       <header className="pub-header">
         <div className="brand">
           <div className="brand-mark">
@@ -183,6 +195,14 @@ export default function PublicApp() {
           {disabled ? (
             <div className="field-error" style={{ justifyContent: 'center', marginTop: 14 }}>
               <CircleAlert size={14} /> Layanan sedang dinonaktifkan sementara.
+            </div>
+          ) : vpnBlocked ? (
+            <div className="vpn-block" role="alert">
+              <ShieldCheck size={18} />
+              <div>
+                <b>VPN/proxy terdeteksi.</b> Matikan VPN atau ganti ke koneksi internet biasa, lalu
+                coba lagi.
+              </div>
             </div>
           ) : error ? (
             <div className="field-error" style={{ justifyContent: 'center', marginTop: 14 }}>

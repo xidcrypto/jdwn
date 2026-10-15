@@ -45,6 +45,9 @@ model Setting {
 model Visitor {
   id        Int      @id @default(autoincrement())
   ipHash    String   @unique
+  ip        String?
+  country   String?
+  isVpn     Boolean  @default(false)
   hits      Int      @default(1)
   userAgent String?
   firstSeen DateTime @default(now())
@@ -64,6 +67,13 @@ model ActivityLog {
   id        Int      @id @default(autoincrement())
   type      String
   detail    String?
+  ip        String?
+  ua        String?
+  country   String?
+  isVpn     Boolean  @default(false)
   ok        Boolean  @default(true)
   createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([type])
 }

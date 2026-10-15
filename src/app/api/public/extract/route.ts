@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
+import { getSession } from '@/lib/auth';
 import { extractWithFailover } from '@/lib/extractService';
 import { signPayload } from '@/lib/sign';
 import { getSettings, isUrlAllowed } from '@/lib/settings';
-import { recordExtract } from '@/lib/stats';
+import { recordExtract, recordBlocked } from '@/lib/stats';
+import { checkVpnForRequest } from '@/lib/vpn';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -49,9 +51,26 @@ export async function POST(req: Request) {
     );
   }
 
+  // Blokir VPN/proxy/datacenter. Admin yang login di-bypass.
+  const vpn = await checkVpnForRequest(req);
+  if (settings.vpnBlockEnabled && vpn.isVpn) {
+    const sess = await getSession(req).catch(() => null);
+    if (!sess) {
+      await recordBlocked(req, `VPN/proxy ditolak: ${clean}`, vpn).catch(() => undefined);
+      return NextResponse.json(
+        {
+          error:
+            'VPN/proxy terdeteksi. Matikan VPN lalu coba lagi, atau gunakan koneksi internet biasa.',
+          vpn: true,
+        },
+        { status: 403 },
+      );
+    }
+  }
+
   try {
     const r = await extractWithFailover(clean);
-    await recordExtract(true, clean);
+    await recordExtract(req, true, clean, vpn);
     const referer = new URL(clean).origin + '/';
     const token = signPayload(
       { u: r.videoUrl, t: r.title || r.videoId, r: referer },
@@ -69,7 +88,7 @@ export async function POST(req: Request) {
       downloadUrl: base + '&download=1&name=' + encodeURIComponent(r.title || r.videoId),
     });
   } catch (e) {
-    await recordExtract(false, clean);
+    await recordExtract(req, false, clean, vpn);
     return NextResponse.json(
       { error: (e as Error).message || 'Gagal mengekstrak video.' },
       { status: 502 },

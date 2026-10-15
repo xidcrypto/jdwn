@@ -19,5 +19,7 @@ export async function GET() {
     smartlinkUrl: s.smartlinkUrl,
     smartlinkDownload: s.smartlinkDownload,
     smartlinkPlayer: s.smartlinkPlayer,
+    devGuardEnabled: s.devGuardEnabled,
+    vpnBlockEnabled: s.vpnBlockEnabled,
   });
 }

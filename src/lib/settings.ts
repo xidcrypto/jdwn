@@ -13,6 +13,8 @@ export interface AppSettings {
   smartlinkUrl: string;
   smartlinkDownload: boolean;
   smartlinkPlayer: boolean;
+  vpnBlockEnabled: boolean;
+  devGuardEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -28,6 +30,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   smartlinkUrl: '',
   smartlinkDownload: true,
   smartlinkPlayer: false,
+  vpnBlockEnabled: true,
+  devGuardEnabled: true,
 };
 
 function parseBool(v: string | undefined, def: boolean): boolean {
@@ -126,6 +130,8 @@ export async function getSettings(): Promise<AppSettings> {
     smartlinkUrl: map.smartlinkUrl ?? DEFAULT_SETTINGS.smartlinkUrl,
     smartlinkDownload: parseBool(map.smartlinkDownload, DEFAULT_SETTINGS.smartlinkDownload),
     smartlinkPlayer: parseBool(map.smartlinkPlayer, DEFAULT_SETTINGS.smartlinkPlayer),
+    vpnBlockEnabled: parseBool(map.vpnBlockEnabled, DEFAULT_SETTINGS.vpnBlockEnabled),
+    devGuardEnabled: parseBool(map.devGuardEnabled, DEFAULT_SETTINGS.devGuardEnabled),
   };
 }
 
@@ -166,6 +172,12 @@ export async function saveSettings(patch: Partial<AppSettings>): Promise<AppSett
   }
   if (patch.smartlinkPlayer !== undefined) {
     entries.push(['smartlinkPlayer', patch.smartlinkPlayer ? '1' : '0']);
+  }
+  if (patch.vpnBlockEnabled !== undefined) {
+    entries.push(['vpnBlockEnabled', patch.vpnBlockEnabled ? '1' : '0']);
+  }
+  if (patch.devGuardEnabled !== undefined) {
+    entries.push(['devGuardEnabled', patch.devGuardEnabled ? '1' : '0']);
   }
 
   await Promise.all(
