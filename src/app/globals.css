@@ -2590,6 +2590,12 @@ a {
 .site-footer-credit a:hover {
   text-decoration: underline;
 }
+.site-footer-credit .creator-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  vertical-align: middle;
+}
 .site-footer-note {
   margin: 10px auto 0;
   max-width: 560px;

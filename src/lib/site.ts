@@ -3,7 +3,7 @@ export const SITE_URL = (
 ).replace(/\/+$/, '');
 
 export const CREATOR = {
-  label: 'X @pansagr',
+  label: '@pansagr',
   url: 'https://x.com/pansagr',
 };
 
