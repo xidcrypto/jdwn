@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft, Compass, Film, Home } from 'lucide-react';
+import { Compass, Film, Home } from 'lucide-react';
 
 export default function NotFound() {
   return (
@@ -28,9 +28,6 @@ export default function NotFound() {
         <div className="nf-actions">
           <Link className="btn" href="/">
             <Home size={17} /> Kembali ke Beranda
-          </Link>
-          <Link className="btn ghost" href="/admin">
-            <ArrowLeft size={17} /> Panel Admin
           </Link>
         </div>
       </div>
