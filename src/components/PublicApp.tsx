@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   CheckCircle2,
   CircleAlert,
@@ -8,6 +9,7 @@ import {
   Download,
   Film,
   HelpCircle,
+  Info,
   Link2,
   Loader2,
   MousePointerClick,
@@ -19,6 +21,7 @@ import {
 } from 'lucide-react';
 import AdSlot from './AdSlot';
 import DevGuard from './DevGuard';
+import SiteFooter from './SiteFooter';
 
 interface PublicResult {
   videoId: string;
@@ -153,6 +156,14 @@ export default function PublicApp() {
           </div>
         </div>
         <div className="spacer" />
+        <nav className="pub-links" aria-label="Navigasi utama">
+          <Link href="/about" className="pub-link">
+            <Info size={15} /> Tentang
+          </Link>
+          <Link href="/privacy" className="pub-link">
+            <ShieldCheck size={15} /> Privasi
+          </Link>
+        </nav>
       </header>
 
       <main className="pub-main">
@@ -367,11 +378,7 @@ export default function PublicApp() {
         </section>
       </main>
 
-      <footer className="pub-footer">
-        <p>
-          © {new Date().getFullYear()} {siteName} · Dibuat untuk penggunaan pribadi.
-        </p>
-      </footer>
+      <SiteFooter siteName={siteName} />
     </div>
   );
 }
