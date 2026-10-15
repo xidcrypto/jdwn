@@ -4,11 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Activity,
+  Ban,
   BarChart3,
   Check,
-  ClipboardList,
   CircleAlert,
   CircleCheck,
+  ClipboardList,
+  Clock,
   Copy,
   Download,
   Eraser,
@@ -23,14 +25,19 @@ import {
   Loader2,
   LogIn,
   LogOut,
+  MapPin,
   Megaphone,
+  Monitor,
   Play,
   Plus,
   RefreshCw,
   Save,
+  Search,
   Server,
   Settings,
+  ShieldAlert,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   Trash2,
   TrendingUp,
@@ -161,6 +168,61 @@ const TOKEN_KEY = 'jw_token';
 function fmtDate(v: string | null): string {
   if (!v) return '—';
   return v.replace('T', ' ').slice(0, 19);
+}
+
+function relTime(v: string | null): string {
+  if (!v) return '—';
+  const t = new Date(v).getTime();
+  if (Number.isNaN(t)) return '—';
+  const s = Math.round((Date.now() - t) / 1000);
+  if (s < 5) return 'baru saja';
+  if (s < 60) return `${s} dtk lalu`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} mnt lalu`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} jam lalu`;
+  const d = Math.round(h / 24);
+  if (d < 30) return `${d} hari lalu`;
+  return fmtDate(v).slice(0, 10);
+}
+
+function typeLabel(t: string): string {
+  return t === 'extract' ? 'Ekstraksi' : t === 'download' ? 'Download' : t === 'blocked' ? 'Diblokir' : t;
+}
+
+interface UaInfo {
+  browser: string;
+  platform: string;
+  mobile: boolean;
+}
+
+function parseUA(ua: string | null): UaInfo {
+  if (!ua) return { browser: 'Tidak diketahui', platform: '—', mobile: false };
+  const s = ua;
+  let browser = 'Browser lain';
+  if (/bot|crawler|spider|slurp|facebookexternalhit|preview/i.test(s)) browser = 'Bot / Crawler';
+  else if (/curl|wget|python|axios|node-fetch|go-http|okhttp|java\//i.test(s)) browser = 'Skrip / CLI';
+  else if (/Edg[A-Z]?\//.test(s)) browser = 'Microsoft Edge';
+  else if (/OPR\/|Opera/.test(s)) browser = 'Opera';
+  else if (/SamsungBrowser/.test(s)) browser = 'Samsung Internet';
+  else if (/CriOS/.test(s)) browser = 'Chrome (iOS)';
+  else if (/FxiOS/.test(s)) browser = 'Firefox (iOS)';
+  else if (/Chrome\//.test(s) && !/Chromium/.test(s)) browser = 'Google Chrome';
+  else if (/Firefox\//.test(s)) browser = 'Mozilla Firefox';
+  else if (/Safari\//.test(s) && /Version\//.test(s)) browser = 'Safari';
+  else if (/MSIE|Trident/.test(s)) browser = 'Internet Explorer';
+
+  const mobile = /Mobile|iPhone|iPod|Android/i.test(s);
+  let platform = 'Tidak diketahui';
+  if (/iPhone/.test(s)) platform = 'iPhone';
+  else if (/iPad/.test(s)) platform = 'iPad';
+  else if (/Android/.test(s)) platform = /Mobile/.test(s) ? 'Android' : 'Android Tablet';
+  else if (/Windows NT 10/.test(s)) platform = 'Windows 10/11';
+  else if (/Windows/.test(s)) platform = 'Windows';
+  else if (/Mac OS X|Macintosh/.test(s)) platform = 'macOS';
+  else if (/Linux/.test(s)) platform = 'Linux';
+
+  return { browser, platform, mobile };
 }
 
 /* ------------------------------------------------------------------ */
@@ -317,6 +379,110 @@ function EmptyState({ title, sub }: { title: string; sub?: string }) {
   );
 }
 
+interface ModalField {
+  label: string;
+  icon?: LucideIcon;
+  value: React.ReactNode;
+  copy?: string;
+  mono?: boolean;
+  wide?: boolean;
+}
+
+function InfoModal({
+  title,
+  subtitle,
+  icon: Icon,
+  tone = 'accent',
+  badge,
+  fields,
+  onClose,
+}: {
+  title: string;
+  subtitle?: string;
+  icon: LucideIcon;
+  tone?: 'accent' | 'ok' | 'err' | 'warn';
+  badge?: React.ReactNode;
+  fields: ModalField[];
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
+  const copy = (val: string) => {
+    navigator.clipboard.writeText(val).then(
+      () => {
+        setCopied(val);
+        setTimeout(() => setCopied((c) => (c === val ? null : c)), 1400);
+      },
+      () => undefined,
+    );
+  };
+
+  return (
+    <div className="modal-overlay" onMouseDown={onClose}>
+      <div
+        className="modal-card scale-in"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <button className="modal-x" onClick={onClose} aria-label="Tutup">
+          <X size={16} />
+        </button>
+
+        <div className="modal-head">
+          <div className={`modal-icon ${tone}`}>
+            <Icon size={20} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div className="modal-title">{title}</div>
+            {subtitle ? <div className="modal-sub mono">{subtitle}</div> : null}
+          </div>
+        </div>
+
+        {badge ? <div className="modal-badges">{badge}</div> : null}
+
+        <div className="modal-body">
+          {fields.map((f) => (
+            <div className={`modal-field ${f.wide ? 'wide' : ''}`} key={f.label}>
+              <div className="modal-field-label">
+                {f.icon ? <f.icon size={12} /> : null}
+                {f.label}
+              </div>
+              <div className={`modal-field-value ${f.mono ? 'mono' : ''}`}>
+                <span>{f.value}</span>
+                {f.copy ? (
+                  <button
+                    className="modal-copy"
+                    onClick={() => copy(f.copy as string)}
+                    title="Salin"
+                    aria-label="Salin"
+                  >
+                    {copied === f.copy ? <Check size={13} /> : <Copy size={13} />}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Main app                                                            */
 /* ------------------------------------------------------------------ */
@@ -339,6 +505,9 @@ export default function AdminApp() {
   const [logs, setLogs] = useState<LogsData | null>(null);
   const [logsLoading, setLogsLoading] = useState(false);
   const [logType, setLogType] = useState('');
+  const [logQuery, setLogQuery] = useState('');
+  const [logDetail, setLogDetail] = useState<AccessLogRow | null>(null);
+  const [visitorDetail, setVisitorDetail] = useState<VisitorLogRow | null>(null);
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [domainInput, setDomainInput] = useState('');
@@ -429,21 +598,17 @@ export default function AdminApp() {
     }
   }, [api, push]);
 
-  const loadLogs = useCallback(
-    async (type = '') => {
-      setLogsLoading(true);
-      try {
-        const q = type ? `?type=${encodeURIComponent(type)}` : '';
-        const d = await api<LogsData>('/api/logs' + q);
-        setLogs(d);
-      } catch (e) {
-        push('err', 'Gagal memuat log', (e as Error).message);
-      } finally {
-        setLogsLoading(false);
-      }
-    },
-    [api, push],
-  );
+  const loadLogs = useCallback(async () => {
+    setLogsLoading(true);
+    try {
+      const d = await api<LogsData>('/api/logs');
+      setLogs(d);
+    } catch (e) {
+      push('err', 'Gagal memuat log', (e as Error).message);
+    } finally {
+      setLogsLoading(false);
+    }
+  }, [api, push]);
 
   const loadSettings = useCallback(async () => {
     setSettingsLoading(true);
@@ -496,7 +661,7 @@ export default function AdminApp() {
     if (token) {
       loadProxies();
       loadStats();
-      loadLogs('');
+      loadLogs();
       loadSettings();
     }
   }, [token, loadProxies, loadStats, loadLogs, loadSettings]);
@@ -964,6 +1129,28 @@ export default function AdminApp() {
   const active = proxies.filter((r) => r.enabled).length;
   const failSum = proxies.reduce((a, r) => a + (r.failCount || 0), 0);
   const meta = viewMeta[view];
+
+  const logRows = logs?.logs ?? [];
+  const lq = logQuery.trim().toLowerCase();
+  const filteredLogs = logRows.filter((l) => {
+    if (logType === 'blocked') {
+      if (l.type === 'extract' || l.type === 'download') return false;
+    } else if (logType && l.type !== logType) {
+      return false;
+    }
+    if (!lq) return true;
+    return [l.ip, l.country, l.ua, l.detail, l.type].some((v) =>
+      (v || '').toLowerCase().includes(lq),
+    );
+  });
+  const logCounts = {
+    all: logRows.length,
+    extract: logRows.filter((l) => l.type === 'extract').length,
+    download: logRows.filter((l) => l.type === 'download').length,
+    blocked: logRows.filter((l) => l.type !== 'extract' && l.type !== 'download').length,
+  };
+  const logDetailUA = logDetail ? parseUA(logDetail.ua) : null;
+  const visitorDetailUA = visitorDetail ? parseUA(visitorDetail.userAgent) : null;
 
   const maxDaily = Math.max(1, ...(stats?.daily.flatMap((d) => [d.visits, d.extracts, d.downloads]) ?? [1]));
   const dayLabel = (d: string) =>
@@ -1527,6 +1714,13 @@ export default function AdminApp() {
                 {/* ---------------- LOG AKSES ---------------- */}
                 {view === 'logs' ? (
                   <>
+                    <div className="grid cols-4" style={{ marginBottom: 18 }}>
+                      <StatCard icon={ClipboardList} label="Total log" value={logCounts.all} />
+                      <StatCard icon={Play} label="Ekstraksi" value={logCounts.extract} />
+                      <StatCard icon={Download} label="Download" value={logCounts.download} tone="ok" />
+                      <StatCard icon={Ban} label="Diblokir" value={logCounts.blocked} tone="err" />
+                    </div>
+
                     <div className="card d1 animate-in">
                       <div className="card-head">
                         <span className="head-icon">
@@ -1534,78 +1728,135 @@ export default function AdminApp() {
                         </span>
                         <h2>Log Aktivitas</h2>
                         <div className="spacer" />
-                        <button
-                          className="btn ghost sm"
-                          onClick={() => loadLogs(logType)}
-                          disabled={logsLoading}
-                        >
+                        <span className="status-line">
+                          {filteredLogs.length} dari {logCounts.all}
+                        </span>
+                        <button className="btn ghost sm" onClick={loadLogs} disabled={logsLoading}>
                           <RefreshCw size={14} className={logsLoading ? 'spinner' : ''} /> Muat ulang
                         </button>
                       </div>
 
-                      <div className="log-filters">
-                        {[
-                          { key: '', label: 'Semua' },
-                          { key: 'extract', label: 'Ekstraksi' },
-                          { key: 'download', label: 'Download' },
-                          { key: 'blocked', label: 'Diblokir' },
-                        ].map((f) => (
-                          <button
-                            key={f.key || 'all'}
-                            className={`chip ${logType === f.key ? 'active' : ''}`}
-                            onClick={() => {
-                              setLogType(f.key);
-                              loadLogs(f.key);
-                            }}
-                          >
-                            {f.label}
-                          </button>
-                        ))}
+                      <div className="log-toolbar">
+                        <div className="log-filters">
+                          {[
+                            { key: '', label: 'Semua', n: logCounts.all },
+                            { key: 'extract', label: 'Ekstraksi', n: logCounts.extract },
+                            { key: 'download', label: 'Download', n: logCounts.download },
+                            { key: 'blocked', label: 'Diblokir', n: logCounts.blocked },
+                          ].map((f) => (
+                            <button
+                              key={f.key || 'all'}
+                              className={`chip ${logType === f.key ? 'active' : ''}`}
+                              onClick={() => setLogType(f.key)}
+                            >
+                              {f.label}
+                              <span className="chip-count">{f.n}</span>
+                            </button>
+                          ))}
+                        </div>
+                        <div className="log-search">
+                          <Search size={15} />
+                          <input
+                            value={logQuery}
+                            onChange={(e) => setLogQuery(e.target.value)}
+                            placeholder="Cari IP, negara, URL…"
+                            aria-label="Cari log"
+                          />
+                          {logQuery ? (
+                            <button
+                              className="log-search-x"
+                              onClick={() => setLogQuery('')}
+                              aria-label="Bersihkan pencarian"
+                            >
+                              <X size={13} />
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
 
                       {!logs ? (
-                        <div className="skeleton" style={{ height: 160, borderRadius: 12 }} />
-                      ) : !logs.logs.length ? (
-                        <p className="hint">Belum ada log untuk filter ini.</p>
+                        <div className="skeleton" style={{ height: 200, borderRadius: 12 }} />
+                      ) : !filteredLogs.length ? (
+                        <EmptyState
+                          title={logRows.length ? 'Tidak ada yang cocok' : 'Belum ada log'}
+                          sub={
+                            logRows.length
+                              ? 'Coba ubah filter atau kata kunci pencarian.'
+                              : 'Aktivitas pengunjung akan tercatat di sini.'
+                          }
+                        />
                       ) : (
                         <div className="table-wrap">
-                          <table className="table">
+                          <table className="table log-table">
                             <thead>
                               <tr>
                                 <th>Waktu</th>
                                 <th>Tipe</th>
                                 <th>IP</th>
                                 <th>Negara</th>
-                                <th>Perangkat (UA)</th>
+                                <th>Perangkat</th>
                                 <th>Detail</th>
+                                <th aria-label="Aksi" />
                               </tr>
                             </thead>
                             <tbody>
-                              {logs.logs.map((l) => (
-                                <tr key={l.id} className={l.isVpn ? 'row-warn' : ''}>
-                                  <td className="nowrap mono">{fmtDate(l.createdAt)}</td>
-                                  <td>
-                                    <span className={`log-type ${l.type} ${l.ok ? '' : 'bad'}`}>
-                                      {l.type === 'extract'
-                                        ? 'Ekstraksi'
-                                        : l.type === 'download'
-                                          ? 'Download'
-                                          : 'Diblokir'}
-                                    </span>
-                                  </td>
-                                  <td className="mono nowrap">
-                                    {l.ip || '—'}
-                                    {l.isVpn ? <span className="vpn-tag">VPN</span> : null}
-                                  </td>
-                                  <td className="nowrap">{l.country || '—'}</td>
-                                  <td className="ua-cell" title={l.ua || ''}>
-                                    {l.ua || '—'}
-                                  </td>
-                                  <td className="detail-cell mono" title={l.detail || ''}>
-                                    {l.detail || '—'}
-                                  </td>
-                                </tr>
-                              ))}
+                              {filteredLogs.map((l) => {
+                                const ua = parseUA(l.ua);
+                                return (
+                                  <tr
+                                    key={l.id}
+                                    className={`log-row ${l.isVpn ? 'row-warn' : ''}`}
+                                    onClick={() => setLogDetail(l)}
+                                  >
+                                    <td data-label="Waktu">
+                                      <div className="tcell-wrap">
+                                        <span className="tcell mono">{fmtDate(l.createdAt)}</span>
+                                        <span className="tcell-sub">{relTime(l.createdAt)}</span>
+                                      </div>
+                                    </td>
+                                    <td data-label="Tipe">
+                                      <span className={`log-type ${l.type} ${l.ok ? '' : 'bad'}`}>
+                                        {typeLabel(l.type)}
+                                      </span>
+                                    </td>
+                                    <td data-label="IP" className="mono nowrap">
+                                      {l.ip || '—'}
+                                      {l.isVpn ? <span className="vpn-tag">VPN</span> : null}
+                                    </td>
+                                    <td data-label="Negara" className="nowrap">
+                                      {l.country || '—'}
+                                    </td>
+                                    <td data-label="Perangkat">
+                                      <span className="ua-mini">
+                                        {ua.mobile ? <Smartphone size={14} /> : <Monitor size={14} />}
+                                        <span className="ua-name">{ua.browser}</span>
+                                        <span className="ua-os">{ua.platform}</span>
+                                      </span>
+                                    </td>
+                                    <td
+                                      data-label="Detail"
+                                      className="detail-cell mono"
+                                      title={l.detail || ''}
+                                    >
+                                      {l.detail || '—'}
+                                    </td>
+                                    <td data-label="Aksi" className="cell-action">
+                                      <button
+                                        type="button"
+                                        className="btn ghost icon sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setLogDetail(l);
+                                        }}
+                                        title="Lihat detail"
+                                        aria-label="Lihat detail"
+                                      >
+                                        <Eye size={15} />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -1623,36 +1874,74 @@ export default function AdminApp() {
                       </div>
 
                       {!logs ? (
-                        <div className="skeleton" style={{ height: 120, borderRadius: 12 }} />
+                        <div className="skeleton" style={{ height: 140, borderRadius: 12 }} />
                       ) : !logs.visitors.length ? (
-                        <p className="hint">Belum ada pengunjung terekam.</p>
+                        <EmptyState
+                          title="Belum ada pengunjung"
+                          sub="Pengunjung unik akan muncul setelah ada kunjungan."
+                        />
                       ) : (
                         <div className="table-wrap">
-                          <table className="table">
+                          <table className="table log-table">
                             <thead>
                               <tr>
                                 <th>IP</th>
                                 <th>Negara</th>
                                 <th>Kunjungan</th>
-                                <th>Perangkat (UA)</th>
+                                <th>Perangkat</th>
                                 <th>Terakhir</th>
+                                <th aria-label="Aksi" />
                               </tr>
                             </thead>
                             <tbody>
-                              {logs.visitors.map((v) => (
-                                <tr key={v.id} className={v.isVpn ? 'row-warn' : ''}>
-                                  <td className="mono nowrap">
-                                    {v.ip || '—'}
-                                    {v.isVpn ? <span className="vpn-tag">VPN</span> : null}
-                                  </td>
-                                  <td className="nowrap">{v.country || '—'}</td>
-                                  <td>{v.hits}</td>
-                                  <td className="ua-cell" title={v.userAgent || ''}>
-                                    {v.userAgent || '—'}
-                                  </td>
-                                  <td className="nowrap mono">{fmtDate(v.lastSeen)}</td>
-                                </tr>
-                              ))}
+                              {logs.visitors.map((v) => {
+                                const ua = parseUA(v.userAgent);
+                                return (
+                                  <tr
+                                    key={v.id}
+                                    className={`log-row ${v.isVpn ? 'row-warn' : ''}`}
+                                    onClick={() => setVisitorDetail(v)}
+                                  >
+                                    <td data-label="IP" className="mono nowrap">
+                                      {v.ip || '—'}
+                                      {v.isVpn ? <span className="vpn-tag">VPN</span> : null}
+                                    </td>
+                                    <td data-label="Negara" className="nowrap">
+                                      {v.country || '—'}
+                                    </td>
+                                    <td data-label="Kunjungan">
+                                      <span className="hits-badge">{v.hits}×</span>
+                                    </td>
+                                    <td data-label="Perangkat">
+                                      <span className="ua-mini">
+                                        {ua.mobile ? <Smartphone size={14} /> : <Monitor size={14} />}
+                                        <span className="ua-name">{ua.browser}</span>
+                                        <span className="ua-os">{ua.platform}</span>
+                                      </span>
+                                    </td>
+                                    <td data-label="Terakhir" className="nowrap">
+                                      <div className="tcell-wrap">
+                                        <span className="tcell mono">{fmtDate(v.lastSeen)}</span>
+                                        <span className="tcell-sub">{relTime(v.lastSeen)}</span>
+                                      </div>
+                                    </td>
+                                    <td data-label="Aksi" className="cell-action">
+                                      <button
+                                        type="button"
+                                        className="btn ghost icon sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setVisitorDetail(v);
+                                        }}
+                                        title="Lihat detail"
+                                        aria-label="Lihat detail"
+                                      >
+                                        <Eye size={15} />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -2168,6 +2457,145 @@ export default function AdminApp() {
           </button>
         ))}
       </nav>
+
+      {/* Log detail modal */}
+      {logDetail && logDetailUA ? (
+        <InfoModal
+          title="Detail Log Aktivitas"
+          subtitle={`#${logDetail.id} · ${logDetail.type}`}
+          icon={logDetail.isVpn || !logDetail.ok ? ShieldAlert : ClipboardList}
+          tone={logDetail.isVpn || !logDetail.ok ? 'warn' : 'accent'}
+          onClose={() => setLogDetail(null)}
+          badge={
+            <>
+              <span className={`log-type ${logDetail.type} ${logDetail.ok ? '' : 'bad'}`}>
+                {typeLabel(logDetail.type)}
+              </span>
+              {logDetail.ok ? (
+                <span className="badge on">
+                  <CircleCheck size={11} /> Berhasil
+                </span>
+              ) : (
+                <span className="badge bad">
+                  <CircleAlert size={11} /> Gagal / ditolak
+                </span>
+              )}
+              {logDetail.isVpn ? (
+                <span className="badge off">
+                  <ShieldAlert size={11} /> VPN / Proxy
+                </span>
+              ) : null}
+            </>
+          }
+          fields={[
+            {
+              label: 'Waktu',
+              icon: Clock,
+              value: `${fmtDate(logDetail.createdAt)} · ${relTime(logDetail.createdAt)}`,
+              wide: true,
+            },
+            {
+              label: 'Alamat IP',
+              icon: Globe,
+              value: logDetail.ip || '—',
+              copy: logDetail.ip || undefined,
+              mono: true,
+            },
+            { label: 'Negara', icon: MapPin, value: logDetail.country || 'Tidak diketahui' },
+            {
+              label: 'Jaringan',
+              icon: logDetail.isVpn ? ShieldAlert : ShieldCheck,
+              value: logDetail.isVpn ? 'VPN / Proxy terdeteksi' : 'Koneksi normal',
+            },
+            {
+              label: 'Perangkat',
+              icon: logDetailUA.mobile ? Smartphone : Monitor,
+              value: `${logDetailUA.browser} · ${logDetailUA.platform}`,
+            },
+            {
+              label: 'User-Agent',
+              icon: Monitor,
+              value: logDetail.ua || '—',
+              copy: logDetail.ua || undefined,
+              mono: true,
+              wide: true,
+            },
+            {
+              label: 'Detail / URL',
+              icon: Link2,
+              value: logDetail.detail || '—',
+              copy: logDetail.detail || undefined,
+              mono: true,
+              wide: true,
+            },
+          ]}
+        />
+      ) : null}
+
+      {/* Visitor detail modal */}
+      {visitorDetail && visitorDetailUA ? (
+        <InfoModal
+          title="Detail Pengunjung"
+          subtitle={visitorDetail.ip || 'IP tidak diketahui'}
+          icon={visitorDetail.isVpn ? ShieldAlert : User}
+          tone={visitorDetail.isVpn ? 'warn' : 'accent'}
+          onClose={() => setVisitorDetail(null)}
+          badge={
+            <>
+              <span className="badge neutral">
+                <Activity size={11} /> {visitorDetail.hits} kunjungan
+              </span>
+              {visitorDetail.isVpn ? (
+                <span className="badge off">
+                  <ShieldAlert size={11} /> VPN / Proxy
+                </span>
+              ) : (
+                <span className="badge on">
+                  <ShieldCheck size={11} /> Normal
+                </span>
+              )}
+            </>
+          }
+          fields={[
+            {
+              label: 'Alamat IP',
+              icon: Globe,
+              value: visitorDetail.ip || '—',
+              copy: visitorDetail.ip || undefined,
+              mono: true,
+            },
+            { label: 'Negara', icon: MapPin, value: visitorDetail.country || 'Tidak diketahui' },
+            {
+              label: 'Jaringan',
+              icon: visitorDetail.isVpn ? ShieldAlert : ShieldCheck,
+              value: visitorDetail.isVpn ? 'VPN / Proxy terdeteksi' : 'Koneksi normal',
+            },
+            {
+              label: 'Perangkat',
+              icon: visitorDetailUA.mobile ? Smartphone : Monitor,
+              value: `${visitorDetailUA.browser} · ${visitorDetailUA.platform}`,
+            },
+            {
+              label: 'User-Agent',
+              icon: Monitor,
+              value: visitorDetail.userAgent || '—',
+              copy: visitorDetail.userAgent || undefined,
+              mono: true,
+              wide: true,
+            },
+            {
+              label: 'Pertama terlihat',
+              icon: Clock,
+              value: `${fmtDate(visitorDetail.firstSeen)} · ${relTime(visitorDetail.firstSeen)}`,
+            },
+            {
+              label: 'Terakhir terlihat',
+              icon: Clock,
+              value: `${fmtDate(visitorDetail.lastSeen)} · ${relTime(visitorDetail.lastSeen)}`,
+            },
+          ]}
+        />
+      ) : null}
     </>
   );
 }
