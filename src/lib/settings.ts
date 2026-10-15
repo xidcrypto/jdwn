@@ -1,5 +1,11 @@
 import { prisma } from './prisma';
 
+/** Kunci platform untuk cookies terpisah (yt-dlp memakai yang cocok domain). */
+export const COOKIE_PLATFORMS = ['youtube', 'instagram', 'tiktok', 'twitter', 'facebook', 'other'] as const;
+export type CookiePlatform = (typeof COOKIE_PLATFORMS)[number];
+/** Isi cookies (format Netscape) per platform. */
+export type CookieProfiles = Partial<Record<CookiePlatform, string>>;
+
 export interface AppSettings {
   siteName: string;
   allowedDomains: string[];
@@ -16,7 +22,7 @@ export interface AppSettings {
   vpnBlockEnabled: boolean;
   devGuardEnabled: boolean;
   ytdlpEnabled: boolean;
-  ytdlpCookies: string;
+  ytdlpCookies: CookieProfiles;
   ytdlpMaxHeight: number;
 }
 
@@ -36,13 +42,39 @@ export const DEFAULT_SETTINGS: AppSettings = {
   vpnBlockEnabled: true,
   devGuardEnabled: true,
   ytdlpEnabled: true,
-  ytdlpCookies: '',
+  ytdlpCookies: {},
   ytdlpMaxHeight: 1080,
 };
 
 function parseBool(v: string | undefined, def: boolean): boolean {
   if (v === undefined) return def;
   return v === '1' || v === 'true' || v === 'on';
+}
+
+const MAX_COOKIE_CHARS = 50000;
+
+/** Normalisasi cookies: hanya platform yang dikenal, string non-kosong. */
+export function normalizeCookies(raw: unknown): CookieProfiles {
+  const out: CookieProfiles = {};
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const obj = raw as Record<string, unknown>;
+    for (const p of COOKIE_PLATFORMS) {
+      const v = obj[p];
+      if (typeof v === 'string' && v.trim()) out[p] = v.slice(0, MAX_COOKIE_CHARS);
+    }
+  } else if (typeof raw === 'string' && raw.trim()) {
+    out.other = raw.slice(0, MAX_COOKIE_CHARS);
+  }
+  return out;
+}
+
+function parseCookieStore(raw?: string): CookieProfiles {
+  if (!raw) return {};
+  try {
+    return normalizeCookies(JSON.parse(raw));
+  } catch {
+    return normalizeCookies(raw);
+  }
 }
 
 /** Bersihkan input domain: buang skema, path, port, spasi; lowercase. */
@@ -139,7 +171,7 @@ export async function getSettings(): Promise<AppSettings> {
     vpnBlockEnabled: parseBool(map.vpnBlockEnabled, DEFAULT_SETTINGS.vpnBlockEnabled),
     devGuardEnabled: parseBool(map.devGuardEnabled, DEFAULT_SETTINGS.devGuardEnabled),
     ytdlpEnabled: parseBool(map.ytdlpEnabled, DEFAULT_SETTINGS.ytdlpEnabled),
-    ytdlpCookies: map.ytdlpCookies ?? DEFAULT_SETTINGS.ytdlpCookies,
+    ytdlpCookies: parseCookieStore(map.ytdlpCookies),
     ytdlpMaxHeight: clampMaxHeight(map.ytdlpMaxHeight),
   };
 }
@@ -199,7 +231,7 @@ export async function saveSettings(patch: Partial<AppSettings>): Promise<AppSett
     entries.push(['ytdlpEnabled', patch.ytdlpEnabled ? '1' : '0']);
   }
   if (patch.ytdlpCookies !== undefined) {
-    entries.push(['ytdlpCookies', String(patch.ytdlpCookies).slice(0, 100000)]);
+    entries.push(['ytdlpCookies', JSON.stringify(normalizeCookies(patch.ytdlpCookies))]);
   }
   if (patch.ytdlpMaxHeight !== undefined) {
     entries.push(['ytdlpMaxHeight', String(clampMaxHeight(String(patch.ytdlpMaxHeight)))]);

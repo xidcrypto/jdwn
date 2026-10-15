@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import type { CookieProfiles } from './settings';
 
 /**
  * Integrasi yt-dlp: mendukung YouTube, TikTok, Instagram, X/Twitter,
@@ -163,8 +164,17 @@ function ensureCacheDir(): string {
   return CACHE_DIR;
 }
 
-function cookieArgs(cookiesText: string): string[] {
-  let content = (cookiesText || '').trim();
+/** Gabungkan cookies semua platform menjadi satu isi (format Netscape). */
+function combineCookies(profiles: CookieProfiles | undefined): string {
+  if (!profiles) return '';
+  return Object.values(profiles)
+    .map((v) => (v || '').trim())
+    .filter(Boolean)
+    .join('\n');
+}
+
+function cookieArgs(profiles: CookieProfiles | undefined): string[] {
+  let content = combineCookies(profiles);
   if (!content && COOKIES_ENV) {
     try {
       if (fs.existsSync(COOKIES_ENV)) return ['--cookies', COOKIES_ENV];
@@ -244,9 +254,9 @@ function pickDirect(formats: RawFormat[]): YtdlpProbe['direct'] | undefined {
   return { url: best.url as string, headers, ext: best.ext || 'mp4' };
 }
 
-export async function probe(url: string, cookiesText = ''): Promise<YtdlpProbe> {
+export async function probe(url: string, cookies: CookieProfiles = {}): Promise<YtdlpProbe> {
   cleanupCache();
-  const args = [...COMMON_ARGS, ...NET_ARGS, '-J', ...cookieArgs(cookiesText), ...proxyArgs(), url];
+  const args = [...COMMON_ARGS, ...NET_ARGS, '-J', ...cookieArgs(cookies), ...proxyArgs(), url];
   const { code, stdout, stderr } = await run(args, { timeoutMs: PROBE_TIMEOUT_MS });
   if (code !== 0 || !stdout.trim()) throw new Error(ytdlpError(stderr));
 
@@ -317,7 +327,7 @@ export function cacheKeyFor(url: string): string {
 export async function downloadToFile(
   url: string,
   maxHeight: number,
-  cookiesText = '',
+  cookies: CookieProfiles = {},
 ): Promise<string> {
   cleanupCache();
   const dir = ensureCacheDir();
@@ -345,7 +355,7 @@ export async function downloadToFile(
     'mp4',
     '-o',
     path.join(dir, key + '.%(ext)s'),
-    ...cookieArgs(cookiesText),
+    ...cookieArgs(cookies),
     ...proxyArgs(),
     url,
   ];

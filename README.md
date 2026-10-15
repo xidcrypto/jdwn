@@ -32,8 +32,9 @@ registrasi.
 - **Log Akses**: catat IP, negara, User-Agent, dan status VPN, dengan filter per jenis aksi.
 - Manajemen domain & link yang diizinkan.
 - Pengaturan situs: nama situs, aktif/nonaktif publik, iklan (Adsterra), Smartlink.
-- **Downloader Universal (yt-dlp)**: aktif/nonaktif, batas kualitas (sampai 2160p), dan kolom
-  cookies (format Netscape) untuk situs yang butuh login.
+- **Downloader Universal (yt-dlp)**: aktif/nonaktif, batas kualitas (sampai 2160p), dan **cookies
+  terpisah per platform** (YouTube, Instagram, TikTok, X/Twitter, Facebook, Lainnya) dalam format
+  Netscape untuk situs yang butuh login.
 - Penghapusan data proxy (semua/berhasil/gagal/nonaktif).
 
 ### Keamanan

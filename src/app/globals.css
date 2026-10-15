@@ -3080,6 +3080,82 @@ a {
   background: var(--grad-soft);
 }
 
+/* Cookies per platform (admin) */
+.cookie-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cookie-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.cookie-item[open] {
+  border-color: var(--border-strong);
+}
+.cookie-item > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background 0.2s var(--ease);
+}
+.cookie-item > summary::-webkit-details-marker {
+  display: none;
+}
+.cookie-item > summary:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.cookie-item > summary::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+  transition: transform 0.2s var(--ease);
+  flex: 0 0 auto;
+}
+.cookie-item[open] > summary::before {
+  transform: rotate(45deg);
+}
+.cookie-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--txt);
+}
+.cookie-badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+}
+.cookie-badge.on {
+  color: var(--ok);
+  border-color: rgba(52, 211, 153, 0.34);
+  background: rgba(52, 211, 153, 0.1);
+}
+.cookie-body {
+  padding: 0 13px 13px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.cookie-body textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
 /* Input card — glassy with animated gradient ring */
 .dl-card {
   background: linear-gradient(180deg, rgba(26, 29, 43, 0.74), rgba(13, 15, 23, 0.74));

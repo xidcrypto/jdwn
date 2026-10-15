@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { getSettings, saveSettings, normalizeDomains, normalizeLinks, type AppSettings } from '@/lib/settings';
+import { getSettings, saveSettings, normalizeDomains, normalizeLinks, normalizeCookies, type AppSettings } from '@/lib/settings';
 
 export const runtime = 'nodejs';
 
@@ -32,7 +32,7 @@ export async function PUT(req: Request) {
   if (typeof body.vpnBlockEnabled === 'boolean') patch.vpnBlockEnabled = body.vpnBlockEnabled;
   if (typeof body.devGuardEnabled === 'boolean') patch.devGuardEnabled = body.devGuardEnabled;
   if (typeof body.ytdlpEnabled === 'boolean') patch.ytdlpEnabled = body.ytdlpEnabled;
-  if (typeof body.ytdlpCookies === 'string') patch.ytdlpCookies = body.ytdlpCookies;
+  if (body.ytdlpCookies !== undefined) patch.ytdlpCookies = normalizeCookies(body.ytdlpCookies);
   if (typeof body.ytdlpMaxHeight === 'number') patch.ytdlpMaxHeight = body.ytdlpMaxHeight;
 
   if (!Object.keys(patch).length) {

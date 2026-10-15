@@ -95,9 +95,18 @@ interface AppSettings {
   vpnBlockEnabled: boolean;
   devGuardEnabled: boolean;
   ytdlpEnabled: boolean;
-  ytdlpCookies: string;
+  ytdlpCookies: Record<string, string>;
   ytdlpMaxHeight: number;
 }
+
+const COOKIE_PLATFORM_LIST: { key: string; label: string; hint: string }[] = [
+  { key: 'youtube', label: 'YouTube', hint: 'cookies.txt untuk YouTube (bila diminta verifikasi).' },
+  { key: 'instagram', label: 'Instagram', hint: 'Wajib login — ekspor cookies.txt saat sudah masuk IG.' },
+  { key: 'tiktok', label: 'TikTok', hint: 'Membantu melewati pemeriksaan bot.' },
+  { key: 'twitter', label: 'X (Twitter)', hint: 'Untuk video yang butuh login / konten sensitif.' },
+  { key: 'facebook', label: 'Facebook', hint: 'Untuk video privat / butuh login.' },
+  { key: 'other', label: 'Lainnya / Umum', hint: 'Cookie situs lain (dipakai bila domain cocok).' },
+];
 
 interface AccessLogRow {
   id: number;
@@ -2236,39 +2245,81 @@ export default function AdminApp() {
                           </div>
 
                           <div className="field">
-                            <label className="label" htmlFor="ytC">
-                              <KeyRound size={13} /> Cookies (format Netscape / cookies.txt)
+                            <label className="label">
+                              <KeyRound size={13} /> Cookies per platform (format Netscape /
+                              cookies.txt)
                             </label>
-                            <textarea
-                              id="ytC"
-                              className="input"
-                              rows={5}
-                              spellCheck={false}
-                              placeholder={
-                                'Boleh dikosongkan. Tempel isi cookies.txt dari browser yang sudah login (untuk Instagram, TikTok, dll).\n\n# Netscape HTTP Cookie File\n.instagram.com\tTRUE\t/\tTRUE\t0\tsessionid\t...'
-                              }
-                              value={settings.ytdlpCookies}
-                              onChange={(e) =>
-                                setSettings({ ...settings, ytdlpCookies: e.target.value })
-                              }
-                            />
-                            <div style={{ display: 'flex', gap: 9, marginTop: 9 }}>
-                              <button
-                                className="btn sm"
-                                onClick={() => saveAppSettings({ ytdlpCookies: settings.ytdlpCookies })}
-                                disabled={savingSettings}
-                              >
-                                <Save size={14} /> Simpan cookies
-                              </button>
-                              {settings.ytdlpCookies ? (
-                                <button
-                                  className="btn ghost sm"
-                                  onClick={() => saveAppSettings({ ytdlpCookies: '' })}
-                                  disabled={savingSettings}
-                                >
-                                  <Trash2 size={14} /> Hapus
-                                </button>
-                              ) : null}
+                            <p className="hint" style={{ marginTop: 0, marginBottom: 10 }}>
+                              Tempel cookies.txt terpisah untuk tiap situs yang butuh login. yt-dlp
+                              memakai cookies yang cocok dengan domain video.
+                            </p>
+                            <div className="cookie-list">
+                              {COOKIE_PLATFORM_LIST.map((p) => {
+                                const val = settings.ytdlpCookies?.[p.key] || '';
+                                const filled = val.trim().length > 0;
+                                return (
+                                  <details className="cookie-item" key={p.key} open={filled}>
+                                    <summary>
+                                      <span className="cookie-name">{p.label}</span>
+                                      <span className={`cookie-badge ${filled ? 'on' : ''}`}>
+                                        {filled ? 'Terisi' : 'Kosong'}
+                                      </span>
+                                    </summary>
+                                    <div className="cookie-body">
+                                      <p className="hint" style={{ marginTop: 0 }}>
+                                        {p.hint}
+                                      </p>
+                                      <textarea
+                                        className="input"
+                                        rows={4}
+                                        spellCheck={false}
+                                        placeholder={
+                                          '# Netscape HTTP Cookie File\n.' +
+                                          (p.key === 'other' ? 'contoh.com' : p.key + '.com') +
+                                          '\tTRUE\t/\tTRUE\t0\tnama\tisi'
+                                        }
+                                        value={val}
+                                        onChange={(e) =>
+                                          setSettings({
+                                            ...settings,
+                                            ytdlpCookies: {
+                                              ...settings.ytdlpCookies,
+                                              [p.key]: e.target.value,
+                                            },
+                                          })
+                                        }
+                                      />
+                                      <div style={{ display: 'flex', gap: 9, marginTop: 9 }}>
+                                        <button
+                                          className="btn sm"
+                                          onClick={() =>
+                                            saveAppSettings({ ytdlpCookies: settings.ytdlpCookies })
+                                          }
+                                          disabled={savingSettings}
+                                        >
+                                          <Save size={14} /> Simpan
+                                        </button>
+                                        {filled ? (
+                                          <button
+                                            className="btn ghost sm"
+                                            onClick={() =>
+                                              saveAppSettings({
+                                                ytdlpCookies: {
+                                                  ...settings.ytdlpCookies,
+                                                  [p.key]: '',
+                                                },
+                                              })
+                                            }
+                                            disabled={savingSettings}
+                                          >
+                                            <Trash2 size={14} /> Hapus
+                                          </button>
+                                        ) : null}
+                                      </div>
+                                    </div>
+                                  </details>
+                                );
+                              })}
                             </div>
                           </div>
                         </>
