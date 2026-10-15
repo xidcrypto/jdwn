@@ -10,8 +10,17 @@ export const maxDuration = 120;
 const LINK_TTL_MS = 60 * 60 * 1000; // 1 jam
 
 export async function POST(req: Request) {
-  const { url } = (await req.json().catch(() => ({}))) as { url?: string };
-  const clean = String(url || '').trim();
+  const raw = await req.text().catch(() => '');
+  if (raw.length > 4096) {
+    return NextResponse.json({ error: 'Permintaan terlalu besar.' }, { status: 413 });
+  }
+  let url: unknown;
+  try {
+    url = (JSON.parse(raw || '{}') as { url?: unknown }).url;
+  } catch {
+    return NextResponse.json({ error: 'Format permintaan tidak valid.' }, { status: 400 });
+  }
+  const clean = String(url || '').trim().slice(0, 2048);
 
   const settings = await getSettings();
 
