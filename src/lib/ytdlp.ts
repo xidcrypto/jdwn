@@ -304,7 +304,8 @@ export interface ProbeReport {
 
 /**
  * Probe metadata: coba jalur langsung dulu, lalu fallback via proxy
- * (env YTDLP_PROXY + pool DB) bila jalur langsung gagal.
+ * (env YTDLP_PROXY + pool DB) bila jalur langsung gagal. Proxy hanya untuk
+ * metadata yang ringan — download file tidak pernah lewat proxy.
  */
 export async function probeWithReport(
   url: string,
@@ -404,6 +405,10 @@ export function cacheKeyFor(url: string): string {
 /**
  * Unduh (dan merge bila perlu) video ke file lokal, lalu kembalikan path-nya.
  * Hasil di-cache sementara agar pemutaran ulang tidak mengunduh berkali-kali.
+ *
+ * SELALU jalur langsung, tanpa proxy: file video besar dan proxy yang
+ * tersedia lambat, sehingga mengunduh via proxy hanya memperlambat semuanya.
+ * Proxy hanya dipakai untuk probe metadata yang ringan.
  */
 export async function downloadToFile(
   url: string,
@@ -426,7 +431,7 @@ export async function downloadToFile(
     `bv*[height<=${maxHeight}]+ba/` +
     `b[height<=${maxHeight}]/b`;
 
-  const base = [
+  const args = [
     ...COMMON_ARGS,
     ...NET_ARGS,
     '--no-part',
@@ -437,26 +442,14 @@ export async function downloadToFile(
     '-o',
     path.join(dir, key + '.%(ext)s'),
     ...cookieArgs(cookies),
+    url,
   ];
 
   const job = (async () => {
-    const proxies = await ytdlpProxyCandidates();
-    const chain: (string | null)[] = [null, ...proxies];
-    let lastErr: Error | null = null;
-    for (const px of chain) {
-      const args = [...base, ...(px ? ['--proxy', px] : []), url];
-      try {
-        const { code, stderr } = await run(args, { timeoutMs: DOWNLOAD_TIMEOUT_MS });
-        const out = findOutput(dir, key);
-        if (code !== 0 || !out) {
-          throw new Error(ytdlpError(scrubProxySecrets(stderr, proxies)));
-        }
-        return out;
-      } catch (e) {
-        lastErr = e as Error;
-      }
-    }
-    throw lastErr ?? new Error('yt-dlp gagal memproses URL ini.');
+    const { code, stderr } = await run(args, { timeoutMs: DOWNLOAD_TIMEOUT_MS });
+    const out = findOutput(dir, key);
+    if (code !== 0 || !out) throw new Error(ytdlpError(stderr));
+    return out;
   })();
 
   inflight.set(key, job);
