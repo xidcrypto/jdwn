@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   CheckCircle2,
@@ -82,6 +82,7 @@ export default function PublicApp() {
   const [vpnBlocked, setVpnBlocked] = useState(false);
   const [cfg, setCfg] = useState<PublicSettings | null>(null);
   const [thumb, setThumb] = useState<'none' | 'portrait' | 'landscape'>('none');
+  const resultRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     fetch('/api/public/visit', { method: 'POST' }).catch(() => undefined);
@@ -90,6 +91,11 @@ export default function PublicApp() {
       .then((d: PublicSettings) => setCfg(d))
       .catch(() => undefined);
   }, []);
+
+  // Ekstrak sukses -> arahkan layar ke hasil agar user langsung tahu.
+  useEffect(() => {
+    if (result) resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [result]);
 
   const disabled = cfg?.publicEnabled === false;
   const ytOn = cfg?.ytdlpEnabled === true;
@@ -319,7 +325,7 @@ export default function PublicApp() {
         </section>
 
         {result ? (
-          <section className="lz-result">
+          <section className="lz-result" ref={resultRef} style={{ scrollMarginTop: 76 }}>
             <article className="lz-media">
               <div className={`lz-media-thumb lz-thumb-${thumb}`}>
                 {result.thumb ? (
