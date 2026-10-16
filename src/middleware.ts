@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { clientIp, isSameOrigin, limitForPath, rateLimit } from './lib/security';
 
 export const config = {
-  matcher: ['/api/:path*'],
+  matcher: ['/api/:path*', '/d/:path*'],
 };
 
 /**

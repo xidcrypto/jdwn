@@ -110,7 +110,7 @@ export async function POST(req: Request) {
         { u: r.videoUrl, t: r.title || r.videoId, r: referer },
         LINK_TTL_MS,
       );
-      const base = '/api/public/download?token=' + encodeURIComponent(token);
+      const base = '/d/' + encodeURIComponent(token);
       return NextResponse.json({
         ok: true,
         source: 'jwplyr',
@@ -145,7 +145,7 @@ export async function POST(req: Request) {
       payload = { m: 'ym', u: clean, t: p.title, r: referer };
     }
     const token = signPayload(payload as unknown as Record<string, unknown>, LINK_TTL_MS);
-    const base = '/api/public/download?token=' + encodeURIComponent(token);
+    const base = '/d/' + encodeURIComponent(token);
 
     return NextResponse.json({
       ok: true,
