@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { getSettings, normalizeCookies, COOKIE_PLATFORMS, type CookieProfiles } from '@/lib/settings';
 import { validateCookieProfiles } from '@/lib/cookies';
-import { isPublicUrl, probe } from '@/lib/ytdlp';
+import { isPublicUrl, probeWithReport } from '@/lib/ytdlp';
 
 export const runtime = 'nodejs';
 
@@ -75,13 +75,15 @@ export async function POST(req: Request) {
   }
 
   try {
-    const p = await probe(url, profiles);
+    const { probe: p, proxyUsed, attempts } = await probeWithReport(url, profiles);
     return NextResponse.json({
       ok: true,
       extractor: p.extractor,
       title: p.title,
       mode: p.mode,
       height: p.height,
+      proxyUsed,
+      attempts,
     });
   } catch (e) {
     return NextResponse.json({ ok: false, error: (e as Error).message || 'Tes koneksi gagal.' });

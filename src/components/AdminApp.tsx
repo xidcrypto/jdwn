@@ -938,13 +938,16 @@ export default function AdminApp() {
         extractor?: string;
         title?: string;
         mode?: string;
+        proxyUsed?: boolean;
+        attempts?: number;
         error?: string;
       }>('/api/cookies/test', {
         method: 'POST',
         body: JSON.stringify({ platform: key, url, cookies: { [key]: val } }),
       });
       if (d.ok) {
-        const msg = `Koneksi OK · ${d.extractor || 'situs'} · ${d.title || 'tanpa judul'}`;
+        const via = d.proxyUsed ? ' · via proxy' : ' · langsung';
+        const msg = `Koneksi OK · ${d.extractor || 'situs'} · ${d.title || 'tanpa judul'}${via}`;
         setCookieTest((s) => ({ ...s, [key]: { ok: true, msg } }));
         push('ok', `Cookies ${key} valid`, msg);
       } else {

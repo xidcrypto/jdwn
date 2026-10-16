@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { prisma } from './prisma';
 import type { CookieProfiles } from './settings';
 
 /**
@@ -21,6 +22,9 @@ const PROXY = process.env.YTDLP_PROXY || '';
 const CACHE_TTL_MS = 2 * 60 * 60 * 1000; // 2 jam
 const PROBE_TIMEOUT_MS = 60 * 1000;
 const DOWNLOAD_TIMEOUT_MS = 10 * 60 * 1000;
+// Batas percobaan via proxy (env YTDLP_PROXY + pool DB) saat jalur langsung gagal.
+const PROXY_TRIES = Math.max(parseInt(process.env.YTDLP_PROXY_TRIES || '3', 10) || 3, 0);
+const PROXY_PROBE_TIMEOUT_MS = 35 * 1000;
 
 const COMMON_ARGS = ['--no-playlist', '--no-warnings', '--no-progress', '--no-color'];
 const NET_ARGS = ['--socket-timeout', '20', '--retries', '3', '--fragment-retries', '5'];
@@ -194,8 +198,46 @@ function cookieArgs(profiles: CookieProfiles | undefined): string[] {
   }
 }
 
-function proxyArgs(): string[] {
-  return PROXY ? ['--proxy', PROXY] : [];
+/** Kandidat proxy untuk yt-dlp: env YTDLP_PROXY dulu, lalu pool DB yang aktif. */
+async function ytdlpProxyCandidates(): Promise<string[]> {
+  const out: string[] = [];
+  if (PROXY) out.push(PROXY);
+  if (PROXY_TRIES <= 0) return out.slice(0, 1);
+  try {
+    const rows = await prisma.proxy.findMany({
+      where: { enabled: true },
+      orderBy: [{ failCount: 'asc' }, { id: 'asc' }],
+      take: Math.max(PROXY_TRIES, 1),
+      select: { url: true },
+    });
+    for (const r of rows) {
+      if (r.url && !out.includes(r.url)) out.push(r.url);
+      if (out.length >= Math.max(PROXY_TRIES, 1)) break;
+    }
+  } catch {
+    /* abaikan */
+  }
+  return out.slice(0, Math.max(PROXY_TRIES, 1));
+}
+
+/** Bersihkan kredensial proxy dari pesan error agar tidak bocor ke UI/log. */
+function scrubProxySecrets(msg: string, proxies: string[]): string {
+  let out = msg;
+  for (const px of proxies) {
+    if (!px) continue;
+    out = out.split(px).join('[proxy]');
+    try {
+      const u = new URL(px);
+      if (u.username) {
+        out = out.split(`${u.username}:${u.password}`).join('***:***');
+        out = out.split(u.username).join('***');
+        if (u.password) out = out.split(u.password).join('***');
+      }
+    } catch {
+      /* bukan URL valid */
+    }
+  }
+  return out;
 }
 
 let lastCleanup = 0;
@@ -254,48 +296,87 @@ function pickDirect(formats: RawFormat[]): YtdlpProbe['direct'] | undefined {
   return { url: best.url as string, headers, ext: best.ext || 'mp4' };
 }
 
-export async function probe(url: string, cookies: CookieProfiles = {}): Promise<YtdlpProbe> {
+export interface ProbeReport {
+  probe: YtdlpProbe;
+  proxyUsed: boolean;
+  attempts: number;
+}
+
+/**
+ * Probe metadata: coba jalur langsung dulu, lalu fallback via proxy
+ * (env YTDLP_PROXY + pool DB) bila jalur langsung gagal.
+ */
+export async function probeWithReport(
+  url: string,
+  cookies: CookieProfiles = {},
+): Promise<ProbeReport> {
   cleanupCache();
-  const args = [...COMMON_ARGS, ...NET_ARGS, '-J', ...cookieArgs(cookies), ...proxyArgs(), url];
-  const { code, stdout, stderr } = await run(args, { timeoutMs: PROBE_TIMEOUT_MS });
-  if (code !== 0 || !stdout.trim()) throw new Error(ytdlpError(stderr));
+  const base = [...COMMON_ARGS, ...NET_ARGS, '-J', ...cookieArgs(cookies)];
+  const proxies = await ytdlpProxyCandidates();
+  const chain: (string | null)[] = [null, ...proxies];
+  let lastErr: Error | null = null;
+  let attempts = 0;
 
-  let data: Record<string, unknown>;
-  try {
-    data = JSON.parse(stdout);
-  } catch {
-    throw new Error('Gagal membaca metadata dari yt-dlp.');
+  for (const px of chain) {
+    attempts++;
+    const args = [...base, ...(px ? ['--proxy', px] : []), url];
+    try {
+      const { code, stdout, stderr } = await run(args, {
+        timeoutMs: px ? PROXY_PROBE_TIMEOUT_MS : PROBE_TIMEOUT_MS,
+      });
+      if (code !== 0 || !stdout.trim()) {
+        throw new Error(ytdlpError(scrubProxySecrets(stderr, proxies)));
+      }
+
+      let data: Record<string, unknown>;
+      try {
+        data = JSON.parse(stdout);
+      } catch {
+        throw new Error('Gagal membaca metadata dari yt-dlp.');
+      }
+
+      const formats = (Array.isArray(data.formats) ? data.formats : []) as RawFormat[];
+      const direct = pickDirect(formats);
+
+      let height: number | null = null;
+      if (direct) {
+        const p = formats
+          .filter((f) => f.vcodec !== 'none' && f.acodec !== 'none')
+          .sort((a, b) => (b.height || 0) - (a.height || 0))[0];
+        height = p?.height ?? null;
+      } else {
+        const h = formats
+          .filter((f) => f.vcodec !== 'none')
+          .map((f) => f.height || 0)
+          .filter(Boolean);
+        height = h.length ? Math.max(...h) : null;
+      }
+
+      const thumbRaw = (data.thumbnail as string) || null;
+      return {
+        probe: {
+          id: String(data.id || ''),
+          title: String(data.title || data.id || 'video'),
+          thumb: thumbRaw,
+          duration: typeof data.duration === 'number' ? data.duration : null,
+          extractor: String(data.extractor_key || data.extractor || ''),
+          webpageUrl: String(data.webpage_url || url),
+          height,
+          mode: direct ? 'direct' : 'merge',
+          direct,
+        },
+        proxyUsed: px !== null,
+        attempts,
+      };
+    } catch (e) {
+      lastErr = e as Error;
+    }
   }
+  throw lastErr ?? new Error('yt-dlp gagal memproses URL ini.');
+}
 
-  const formats = (Array.isArray(data.formats) ? data.formats : []) as RawFormat[];
-  const direct = pickDirect(formats);
-
-  let height: number | null = null;
-  if (direct) {
-    const p = formats
-      .filter((f) => f.vcodec !== 'none' && f.acodec !== 'none')
-      .sort((a, b) => (b.height || 0) - (a.height || 0))[0];
-    height = p?.height ?? null;
-  } else {
-    const h = formats
-      .filter((f) => f.vcodec !== 'none')
-      .map((f) => f.height || 0)
-      .filter(Boolean);
-    height = h.length ? Math.max(...h) : null;
-  }
-
-  const thumbRaw = (data.thumbnail as string) || null;
-  return {
-    id: String(data.id || ''),
-    title: String(data.title || data.id || 'video'),
-    thumb: thumbRaw,
-    duration: typeof data.duration === 'number' ? data.duration : null,
-    extractor: String(data.extractor_key || data.extractor || ''),
-    webpageUrl: String(data.webpage_url || url),
-    height,
-    mode: direct ? 'direct' : 'merge',
-    direct,
-  };
+export async function probe(url: string, cookies: CookieProfiles = {}): Promise<YtdlpProbe> {
+  return (await probeWithReport(url, cookies)).probe;
 }
 
 // ---------- merge download ----------
@@ -345,7 +426,7 @@ export async function downloadToFile(
     `bv*[height<=${maxHeight}]+ba/` +
     `b[height<=${maxHeight}]/b`;
 
-  const args = [
+  const base = [
     ...COMMON_ARGS,
     ...NET_ARGS,
     '--no-part',
@@ -356,15 +437,26 @@ export async function downloadToFile(
     '-o',
     path.join(dir, key + '.%(ext)s'),
     ...cookieArgs(cookies),
-    ...proxyArgs(),
-    url,
   ];
 
   const job = (async () => {
-    const { code, stderr } = await run(args, { timeoutMs: DOWNLOAD_TIMEOUT_MS });
-    const out = findOutput(dir, key);
-    if (code !== 0 || !out) throw new Error(ytdlpError(stderr));
-    return out;
+    const proxies = await ytdlpProxyCandidates();
+    const chain: (string | null)[] = [null, ...proxies];
+    let lastErr: Error | null = null;
+    for (const px of chain) {
+      const args = [...base, ...(px ? ['--proxy', px] : []), url];
+      try {
+        const { code, stderr } = await run(args, { timeoutMs: DOWNLOAD_TIMEOUT_MS });
+        const out = findOutput(dir, key);
+        if (code !== 0 || !out) {
+          throw new Error(ytdlpError(scrubProxySecrets(stderr, proxies)));
+        }
+        return out;
+      } catch (e) {
+        lastErr = e as Error;
+      }
+    }
+    throw lastErr ?? new Error('yt-dlp gagal memproses URL ini.');
   })();
 
   inflight.set(key, job);
