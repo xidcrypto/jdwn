@@ -93,8 +93,7 @@ export function limitForPath(pathname: string): { limit: number; bucket: string 
   if (pathname === '/api/public/extract') return { limit: 20, bucket: 'extract' };
   if (pathname === '/api/public/visit') return { limit: 30, bucket: 'visit' };
   // Streaming/download: pemutar video wajar mengirim puluhan request Range
-  // per pemutaran, jadi batasnya longgar. Operasi berat tetap aman karena
-  // merge yt-dlp di-cache + didedup, dan token kedaluwarsa 1 jam.
+  // per pemutaran, jadi batasnya longgar. Token kedaluwarsa 1 jam.
   if (pathname === '/api/public/download' || pathname === '/d' || pathname.startsWith('/d/')) {
     return { limit: 300, bucket: 'dl' };
   }

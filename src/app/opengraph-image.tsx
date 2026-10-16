@@ -136,8 +136,7 @@ export default async function OpengraphImage() {
               lineHeight: 1.45,
             }}
           >
-            Tempel tautan dari YouTube, TikTok, Instagram, X, dan Facebook lalu simpan videonya dalam
-            kualitas terbaik—langsung ke perangkatmu.
+            Tempel tautan videonya, lalu simpan dalam kualitas terbaik—langsung ke perangkatmu.
           </div>
 
           <div style={{ display: 'flex', gap: 14, marginTop: 34 }}>

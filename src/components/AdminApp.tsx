@@ -54,7 +54,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useConfirm } from './ConfirmProvider';
-import { validateCookieText } from '@/lib/cookies';
 
 /* ------------------------------------------------------------------ */
 /* Types & helpers                                                     */
@@ -99,19 +98,7 @@ interface AppSettings {
   smartlinkPlayer: boolean;
   vpnBlockEnabled: boolean;
   devGuardEnabled: boolean;
-  ytdlpEnabled: boolean;
-  ytdlpCookies: Record<string, string>;
-  ytdlpMaxHeight: number;
 }
-
-const COOKIE_PLATFORM_LIST: { key: string; label: string; hint: string; sample: string }[] = [
-  { key: 'youtube', label: 'YouTube', hint: 'cookies.txt untuk YouTube (bila diminta verifikasi).', sample: 'https://www.youtube.com/watch?v=aqz-KE-bpKQ' },
-  { key: 'instagram', label: 'Instagram', hint: 'Wajib login — ekspor cookies.txt saat sudah masuk IG.', sample: 'https://www.instagram.com/reel/xxxxxxxxxxx/' },
-  { key: 'tiktok', label: 'TikTok', hint: 'Membantu melewati pemeriksaan bot.', sample: 'https://www.tiktok.com/@akun/video/1234567890123456789' },
-  { key: 'twitter', label: 'X (Twitter)', hint: 'Untuk video yang butuh login / konten sensitif.', sample: 'https://x.com/akun/status/1234567890123456789' },
-  { key: 'facebook', label: 'Facebook', hint: 'Untuk video privat / butuh login.', sample: 'https://www.facebook.com/reel/1234567890123456' },
-  { key: 'other', label: 'Lainnya / Umum', hint: 'Cookie situs lain (dipakai bila domain cocok).', sample: 'https://contoh.com/video/123' },
-];
 
 interface AccessLogRow {
   id: number;
@@ -546,9 +533,6 @@ export default function AdminApp() {
   const [exUrl, setExUrl] = useState('');
   const [exBusy, setExBusy] = useState(false);
   const [exData, setExData] = useState<ExtractData | null>(null);
-  const [cookieTestUrl, setCookieTestUrl] = useState<Record<string, string>>({});
-  const [cookieTesting, setCookieTesting] = useState<Record<string, boolean>>({});
-  const [cookieTest, setCookieTest] = useState<Record<string, { ok: boolean; msg: string }>>({});
   const [pwOld, setPwOld] = useState('');
   const [pwNew, setPwNew] = useState('');
 
@@ -912,55 +896,6 @@ export default function AdminApp() {
       push('err', 'Uji proxy gagal', (e as Error).message);
     } finally {
       setBusy('');
-    }
-  };
-
-  /* ---------------- cookie test ---------------- */
-
-  const testCookiePlatform = async (key: string) => {
-    const val = settings?.ytdlpCookies?.[key] || '';
-    const url = (cookieTestUrl[key] || '').trim();
-    if (!/^https?:\/\//i.test(url)) {
-      push('info', 'URL tes belum valid', 'Tempel URL video yang ingin diuji di kolom tes.');
-      return;
-    }
-    const fmt = validateCookieText(key, val);
-    if (!fmt.valid) {
-      const msg = fmt.errors.slice(0, 2).join(' ');
-      setCookieTest((s) => ({ ...s, [key]: { ok: false, msg } }));
-      push('err', `Format cookies ${key} tidak valid`, msg);
-      return;
-    }
-    setCookieTesting((s) => ({ ...s, [key]: true }));
-    try {
-      const d = await api<{
-        ok: boolean;
-        extractor?: string;
-        title?: string;
-        mode?: string;
-        proxyUsed?: boolean;
-        attempts?: number;
-        error?: string;
-      }>('/api/cookies/test', {
-        method: 'POST',
-        body: JSON.stringify({ platform: key, url, cookies: { [key]: val } }),
-      });
-      if (d.ok) {
-        const via = d.proxyUsed ? ' · via proxy' : ' · langsung';
-        const msg = `Koneksi OK · ${d.extractor || 'situs'} · ${d.title || 'tanpa judul'}${via}`;
-        setCookieTest((s) => ({ ...s, [key]: { ok: true, msg } }));
-        push('ok', `Cookies ${key} valid`, msg);
-      } else {
-        const msg = d.error || 'Tes koneksi gagal.';
-        setCookieTest((s) => ({ ...s, [key]: { ok: false, msg } }));
-        push('err', `Cookies ${key} gagal`, msg);
-      }
-    } catch (e) {
-      const msg = (e as Error).message;
-      setCookieTest((s) => ({ ...s, [key]: { ok: false, msg } }));
-      push('err', 'Tes koneksi gagal', msg);
-    } finally {
-      setCookieTesting((s) => ({ ...s, [key]: false }));
     }
   };
 
@@ -2411,205 +2346,6 @@ export default function AdminApp() {
                                 saveAppSettings({ devGuardEnabled: !settings.devGuardEnabled })
                               }
                             />
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="card d1 animate-in">
-                      <div className="card-head">
-                        <span className="head-icon">
-                          <Globe size={16} />
-                        </span>
-                        <h2>Downloader Universal (yt-dlp)</h2>
-                        <div className="spacer" />
-                        {settings ? (
-                          <button
-                            className={`switch ${settings.ytdlpEnabled ? 'on' : ''}`}
-                            aria-label="Aktif/nonaktif yt-dlp"
-                            onClick={() => saveAppSettings({ ytdlpEnabled: !settings.ytdlpEnabled })}
-                          />
-                        ) : null}
-                      </div>
-
-                      {!settings ? (
-                        <div className="skeleton" style={{ height: 200, borderRadius: 12 }} />
-                      ) : (
-                        <>
-                          <p className="hint" style={{ marginBottom: 14 }}>
-                            Dukungan <b>YouTube, TikTok, Instagram, X/Twitter, Facebook</b> dan
-                            ribuan situs lain via yt-dlp. Tautan jwplyr tetap diproses oleh parser
-                            khusus. Situs yang butuh login (IG, TikTok) perlu cookies.
-                          </p>
-
-                          <div className="field">
-                            <label className="label" htmlFor="ytH">
-                              <Sparkles size={13} /> Kualitas maksimal
-                            </label>
-                            <select
-                              id="ytH"
-                              className="input"
-                              value={String(settings.ytdlpMaxHeight)}
-                              onChange={(e) =>
-                                saveAppSettings({ ytdlpMaxHeight: Number(e.target.value) })
-                              }
-                            >
-                              {[480, 720, 1080, 1440, 2160].map((h) => (
-                                <option key={h} value={h}>
-                                  {h}p{h === 1080 ? ' (disarankan)' : ''}
-                                </option>
-                              ))}
-                            </select>
-                            <p className="hint" style={{ marginTop: 7 }}>
-                              Batas resolusi saat menggabungkan video+audio (khusus situs seperti
-                              YouTube). Video adaptif diunduh sementara lalu dihapus otomatis.
-                            </p>
-                          </div>
-
-                          <div className="field">
-                            <label className="label">
-                              <KeyRound size={13} /> Cookies per platform (format Netscape /
-                              cookies.txt)
-                            </label>
-                            <p className="hint" style={{ marginTop: 0, marginBottom: 10 }}>
-                              Tempel cookies.txt terpisah untuk tiap situs yang butuh login. Format
-                              diperiksa ketat saat mengetik maupun menyimpan; pakai tombol “Tes
-                              koneksi” dengan URL video asli untuk memastikan cookies benar-benar
-                              bisa dipakai sebelum disimpan.
-                            </p>
-                            <div className="cookie-list">
-                              {COOKIE_PLATFORM_LIST.map((p) => {
-                                const val = settings.ytdlpCookies?.[p.key] || '';
-                                const filled = val.trim().length > 0;
-                                return (
-                                  <details className="cookie-item" key={p.key} open={filled}>
-                                    <summary>
-                                      <span className="cookie-name">{p.label}</span>
-                                      <span className={`cookie-badge ${filled ? 'on' : ''}`}>
-                                        {filled ? 'Terisi' : 'Kosong'}
-                                      </span>
-                                    </summary>
-                                    <div className="cookie-body">
-                                      <p className="hint" style={{ marginTop: 0 }}>
-                                        {p.hint}
-                                      </p>
-                                      <textarea
-                                        className="input"
-                                        rows={4}
-                                        spellCheck={false}
-                                        placeholder={
-                                          '# Netscape HTTP Cookie File\n.' +
-                                          (p.key === 'other' ? 'contoh.com' : p.key + '.com') +
-                                          '\tTRUE\t/\tTRUE\t0\tnama\tisi'
-                                        }
-                                        value={val}
-                                        onChange={(e) =>
-                                          setSettings({
-                                            ...settings,
-                                            ytdlpCookies: {
-                                              ...settings.ytdlpCookies,
-                                              [p.key]: e.target.value,
-                                            },
-                                          })
-                                        }
-                                      />
-                                      {(() => {
-                                        if (!val.trim())
-                                          return (
-                                            <p className="hint" style={{ marginTop: 7 }}>
-                                              Kosong — slot ini tidak dipakai.
-                                            </p>
-                                          );
-                                        const cv = validateCookieText(p.key, val);
-                                        if (cv.valid)
-                                          return (
-                                            <p className="hint" style={{ marginTop: 7, color: '#7fd08a' }}>
-                                              Format valid · {cv.stats.dataRows} baris cookies
-                                              {cv.warnings.length ? ` · ${cv.warnings.length} peringatan` : ''}
-                                              {cv.warnings.map((w) => (
-                                                <span key={w} style={{ display: 'block', color: '#d8c48a' }}>
-                                                  {w}
-                                                </span>
-                                              ))}
-                                            </p>
-                                          );
-                                        return (
-                                          <div className="hint" style={{ marginTop: 7, color: '#e0a89a' }}>
-                                            Format tidak valid:
-                                            {cv.errors.slice(0, 3).map((er) => (
-                                              <span key={er} style={{ display: 'block' }}>
-                                                · {er}
-                                              </span>
-                                            ))}
-                                          </div>
-                                        );
-                                      })()}
-                                      <div style={{ display: 'flex', gap: 9, marginTop: 9, flexWrap: 'wrap' }}>
-                                        <input
-                                          className="input"
-                                          style={{ flex: '1 1 220px' }}
-                                          inputMode="url"
-                                          spellCheck={false}
-                                          placeholder={p.sample}
-                                          value={cookieTestUrl[p.key] || ''}
-                                          onChange={(e) =>
-                                            setCookieTestUrl({ ...cookieTestUrl, [p.key]: e.target.value })
-                                          }
-                                          aria-label={`URL untuk tes cookies ${p.label}`}
-                                        />
-                                        <button
-                                          className="btn ghost sm"
-                                          onClick={() => testCookiePlatform(p.key)}
-                                          disabled={cookieTesting[p.key] || savingSettings}
-                                        >
-                                          <Wifi size={14} />{' '}
-                                          {cookieTesting[p.key] ? 'Mengetes…' : 'Tes koneksi'}
-                                        </button>
-                                      </div>
-                                      {cookieTest[p.key] ? (
-                                        <p
-                                          className="hint"
-                                          style={{
-                                            marginTop: 7,
-                                            color: cookieTest[p.key].ok ? '#7fd08a' : '#e0a89a',
-                                          }}
-                                        >
-                                          {cookieTest[p.key].ok ? '✓ ' : '✗ '}
-                                          {cookieTest[p.key].msg}
-                                        </p>
-                                      ) : null}
-                                      <div style={{ display: 'flex', gap: 9, marginTop: 9 }}>
-                                        <button
-                                          className="btn sm"
-                                          onClick={() =>
-                                            saveAppSettings({ ytdlpCookies: settings.ytdlpCookies })
-                                          }
-                                          disabled={savingSettings}
-                                        >
-                                          <Save size={14} /> Simpan
-                                        </button>
-                                        {filled ? (
-                                          <button
-                                            className="btn ghost sm"
-                                            onClick={() =>
-                                              saveAppSettings({
-                                                ytdlpCookies: {
-                                                  ...settings.ytdlpCookies,
-                                                  [p.key]: '',
-                                                },
-                                              })
-                                            }
-                                            disabled={savingSettings}
-                                          >
-                                            <Trash2 size={14} /> Hapus
-                                          </button>
-                                        ) : null}
-                                      </div>
-                                    </div>
-                                  </details>
-                                );
-                              })}
-                            </div>
                           </div>
                         </>
                       )}

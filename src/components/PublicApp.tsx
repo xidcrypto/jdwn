@@ -47,7 +47,6 @@ interface PublicSettings {
   smartlinkPlayer: boolean;
   devGuardEnabled: boolean;
   vpnBlockEnabled: boolean;
-  ytdlpEnabled: boolean;
 }
 
 const BENEFITS = [
@@ -98,7 +97,6 @@ export default function PublicApp() {
   }, [result]);
 
   const disabled = cfg?.publicEnabled === false;
-  const ytOn = cfg?.ytdlpEnabled === true;
   const domainHint = cfg?.allowAllDomains
     ? 'website apa pun'
     : cfg?.allowedDomains?.length
@@ -255,11 +253,7 @@ export default function PublicApp() {
                   spellCheck={false}
                   value={url}
                   disabled={disabled}
-                  placeholder={
-                    ytOn
-                      ? 'Tempel tautan video di sini…'
-                      : `Tempel tautan video, mis. https://${sample}/…`
-                  }
+                  placeholder={`Tempel tautan video, mis. https://${sample}/…`}
                   onChange={(e) => setUrl(e.target.value)}
                   aria-label="Tautan video"
                 />
@@ -400,21 +394,10 @@ export default function PublicApp() {
           </section>
         ) : null}
 
-        <section className="lz-sources" aria-label="Platform yang didukung">
-          <span className="lz-sources-label">Bekerja dengan platform yang kamu gunakan</span>
+        <section className="lz-sources" aria-label="Sumber yang didukung">
+          <span className="lz-sources-label">Bekerja dengan situs yang kamu gunakan</span>
           <div className="lz-sources-row">
-            {ytOn ? (
-              <>
-                <span>YouTube</span>
-                <span>TikTok</span>
-                <span>Instagram</span>
-                <span>X</span>
-                <span>Facebook</span>
-                <span className="lz-sources-more">dan ribuan situs lain</span>
-              </>
-            ) : (
-              <span className="lz-sources-more">{domainHint}</span>
-            )}
+            <span className="lz-sources-more">{domainHint}</span>
           </div>
         </section>
 
@@ -473,7 +456,7 @@ export default function PublicApp() {
             <h2 className="lz-h2">Hal yang sering ditanyakan.</h2>
           </header>
           <div className="lz-qa">
-            {homeFaq({ ytdlpEnabled: ytOn, domainHint }).map((item, i) => (
+            {homeFaq({ domainHint }).map((item, i) => (
               <details key={item.q} open={i === 0}>
                 <summary>{item.q}</summary>
                 <div className="lz-qa-body">{item.a}</div>

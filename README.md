@@ -17,11 +17,9 @@ registrasi.
 ## Fitur
 
 ### Halaman publik
-- Form unduh simpel: tempel tautan → tampil pilihan format & kualitas.
-- **All-in-one via yt-dlp**: mendukung **YouTube, TikTok, Instagram, X/Twitter, Facebook**, dan
-  ribuan situs lain — di samping parser khusus jwplyr.
-- Streaming langsung untuk format satu-file; merge otomatis (video+audio) untuk sumber adaptif.
-- Unduhan streaming (tanpa proxy) dengan tautan bertanda tangan (signed) yang kedaluwarsa.
+- Form unduh simpel: tempel tautan → proses → unduh.
+- Parser khusus **jwplyr**: mengekstrak video dari halaman embed yang diizinkan admin.
+- Streaming langsung melalui server dengan tautan bertanda tangan (signed) yang kedaluwarsa.
 - Halaman informasi profesional: **Tentang**, **Kebijakan Privasi**, **Syarat & Ketentuan**,
   **DMCA**, dan **Kontak**.
 - `robots.txt` + `sitemap.xml` untuk SEO, plus metadata Open Graph/Twitter.
@@ -32,9 +30,7 @@ registrasi.
 - **Log Akses**: catat IP, negara, User-Agent, dan status VPN, dengan filter per jenis aksi.
 - Manajemen domain & link yang diizinkan.
 - Pengaturan situs: nama situs, aktif/nonaktif publik, iklan (Adsterra), Smartlink.
-- **Downloader Universal (yt-dlp)**: aktif/nonaktif, batas kualitas (sampai 2160p), dan **cookies
-  terpisah per platform** (YouTube, Instagram, TikTok, X/Twitter, Facebook, Lainnya) dalam format
-  Netscape untuk situs yang butuh login.
+- Manajemen & pengujian proxy untuk ekstraksi jwplyr.
 - Penghapusan data proxy (semua/berhasil/gagal/nonaktif).
 
 ### Keamanan
@@ -62,14 +58,6 @@ registrasi.
 - Node.js **18.18+** (disarankan 20+)
 - npm (atau pnpm/yarn)
 - SQLite (bawaan — tidak perlu server database terpisah)
-- **yt-dlp** + **ffmpeg** (opsional, untuk fitur Downloader Universal):
-
-  ```bash
-  # Debian/Ubuntu
-  sudo apt-get install -y ffmpeg
-  sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
-    -o /usr/local/bin/yt-dlp && sudo chmod +x /usr/local/bin/yt-dlp
-  ```
 
 ---
 
@@ -126,10 +114,6 @@ Buka `/install` pada saat pertama kali untuk membuat akun admin. Setelah itu, lo
 | `ALLOWED_ORIGINS` | Tidak | — | Origin tambahan yang diizinkan (dipisah koma). |
 | `API_ALLOW_NO_ORIGIN` | Tidak | — | Set `1` untuk mengizinkan request API tanpa Origin/Referer. |
 | `CSP_POLICY` | Tidak | — | Kustomisasi header Content-Security-Policy. |
-| `YTDLP_PATH` | Tidak | `yt-dlp` | Path binary yt-dlp (dari PATH bila tidak diset). |
-| `YTDLP_PROXY` | Tidak | — | Proxy untuk yt-dlp (`http://…` / `socks5://…`). |
-| `YTDLP_COOKIES` | Tidak | — | Path file cookies (bisa juga lewat panel admin). |
-| `YTDLP_CACHE_DIR` | Tidak | `os.tmpdir()/jwplyr-ytdlp` | Direktori file sementara hasil merge. |
 
 ---
 
@@ -192,7 +176,7 @@ src/
 │   ├── robots.ts / sitemap.ts   # SEO
 │   └── api/                     # Route handlers (auth, public, logs, dll.)
 ├── components/                  # PublicApp, AdminApp, DevGuard, SiteFooter, dll.
-└── lib/                         # prisma, settings, stats, vpn, security, sign, site, ytdlp
+└── lib/                         # prisma, settings, stats, vpn, security, sign, site, extractor
 prisma/
 └── schema.prisma                # Skema database
 ```

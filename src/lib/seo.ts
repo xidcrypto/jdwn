@@ -59,7 +59,7 @@ export function softwareApplicationLd(siteName: string) {
     publisher: { '@id': `${SITE_URL}/#organization` },
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'IDR' },
     featureList: [
-      'Unduh video dari YouTube, TikTok, Instagram, X, dan Facebook',
+      'Unduh video dari situs yang didukung',
       'Tanpa registrasi dan tanpa aplikasi tambahan',
       'Tanpa watermark',
       'Kualitas video maksimal dari sumber',
@@ -128,25 +128,19 @@ export function pageStructuredLd(crumbs: Crumb[]) {
 /* ------------------------------------------------------------------ */
 
 export interface FaqContext {
-  ytdlpEnabled: boolean;
   domainHint: string;
 }
 
-export function homeFaq({ ytdlpEnabled, domainHint }: FaqContext): FaqItem[] {
+export function homeFaq({ domainHint }: FaqContext): FaqItem[] {
   return [
     {
       q: 'Apakah layanan ini berbayar?',
       a: 'Tidak. Layanan ini sepenuhnya gratis dan dapat digunakan tanpa biaya tersembunyi.',
     },
-    ytdlpEnabled
-      ? {
-          q: 'Platform apa saja yang didukung?',
-          a: 'Kami mendukung YouTube, TikTok, Instagram, X, dan Facebook, serta ribuan situs lain. Cukup tempel tautan video secara lengkap.',
-        }
-      : {
-          q: 'Platform apa saja yang didukung?',
-          a: `Saat ini kami mendukung tautan dari ${domainHint}. Tempel tautan videonya secara lengkap.`,
-        },
+    {
+      q: 'Platform apa saja yang didukung?',
+      a: `Saat ini kami mendukung tautan dari ${domainHint}. Tempel tautan videonya secara lengkap.`,
+    },
     {
       q: 'Apakah saya perlu aplikasi atau akun?',
       a: 'Tidak perlu. Cukup buka halaman ini, tempel tautan, lalu unduh. Tanpa pemasangan aplikasi dan tanpa pendaftaran.',

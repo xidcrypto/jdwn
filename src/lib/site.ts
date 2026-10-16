@@ -16,7 +16,7 @@ export function absoluteUrl(path = '/'): string {
 export const SITE_TAGLINE = 'Unduh video favoritmu, cepat dan mudah.';
 
 export const SITE_DESCRIPTION =
-  'Unduh video dan audio dari YouTube, TikTok, Instagram, X, Facebook, dan ribuan situs lain secara cepat, gratis, tanpa registrasi, dan tanpa watermark.';
+  'Unduh video dari situs yang didukung secara cepat, gratis, tanpa registrasi, dan tanpa watermark.';
 
 export const SITE_SHORT_DESCRIPTION =
   'Unduh video dan audio dari berbagai platform dengan cepat, gratis, dan tanpa registrasi.';
@@ -26,21 +26,10 @@ export const SITE_KEYWORDS = [
   'download video',
   'unduh video',
   'unduh video online',
-  'youtube downloader',
-  'downloader youtube',
-  'youtube ke mp4',
-  'youtube ke mp3',
-  'tiktok downloader',
-  'unduh video tiktok',
-  'instagram downloader',
-  'unduh video instagram',
-  'facebook downloader',
-  'twitter video downloader',
   'video downloader gratis',
   'unduh video tanpa watermark',
   'no watermark video',
   'free video downloader',
-  'unduh mp3',
   'online video downloader',
 ];
 

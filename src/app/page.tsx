@@ -35,7 +35,7 @@ export default async function HomePage() {
     : settings?.allowedDomains?.length
       ? settings.allowedDomains.join(', ')
       : 'situs sumber';
-  const faq = homeFaq({ ytdlpEnabled: settings?.ytdlpEnabled !== false, domainHint });
+  const faq = homeFaq({ domainHint });
 
   return (
     <>
