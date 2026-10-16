@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { verifyPayload } from '@/lib/sign';
-import { buildVideoResponse } from '@/lib/videoResponse';
+import { buildVideoResponse, buildLocalFileResponse } from '@/lib/videoResponse';
 import { recordDownload, recordBlocked } from '@/lib/stats';
 import { getSettings } from '@/lib/settings';
 import { checkVpnForRequest } from '@/lib/vpn';
+import { isHls, remuxHlsToFile } from '@/lib/hlsRemux';
 
 interface PublicToken {
   u: string; // videoUrl
@@ -51,7 +52,26 @@ export async function handlePublicDownload(
     recordDownload(req, payload.t, vpn).catch(() => undefined);
   }
 
-  // jwplyr: stream melalui server.
+  // Sumber HLS (.m3u8): remux ke MP4 di server agar bisa diputar & diunduh.
+  if (isHls(payload.u)) {
+    try {
+      const file = await remuxHlsToFile(payload.u, payload.r);
+      return buildLocalFileResponse({
+        req,
+        filePath: file,
+        contentType: 'video/mp4',
+        download,
+        name,
+      });
+    } catch (e) {
+      return NextResponse.json(
+        { error: (e as Error).message || 'Gagal memproses video HLS.' },
+        { status: 502 },
+      );
+    }
+  }
+
+  // jwplyr (MP4 langsung): stream melalui server.
   return buildVideoResponse({
     req,
     videoUrl: payload.u,

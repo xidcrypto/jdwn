@@ -20,6 +20,8 @@ registrasi.
 - Form unduh simpel: tempel tautan → proses → unduh.
 - Parser khusus **jwplyr**: mengekstrak video dari halaman embed yang diizinkan admin.
 - Streaming langsung melalui server dengan tautan bertanda tangan (signed) yang kedaluwarsa.
+- **Dukungan HLS**: sumber playlist (`.m3u8`) diremux otomatis ke MP4 (via ffmpeg) agar bisa diputar
+  dan diunduh.
 - Halaman informasi profesional: **Tentang**, **Kebijakan Privasi**, **Syarat & Ketentuan**,
   **DMCA**, dan **Kontak**.
 - `robots.txt` + `sitemap.xml` untuk SEO, plus metadata Open Graph/Twitter.
@@ -58,6 +60,12 @@ registrasi.
 - Node.js **18.18+** (disarankan 20+)
 - npm (atau pnpm/yarn)
 - SQLite (bawaan — tidak perlu server database terpisah)
+- **ffmpeg** (untuk sumber HLS `.m3u8`):
+
+  ```bash
+  # Debian/Ubuntu
+  sudo apt-get install -y ffmpeg
+  ```
 
 ---
 
@@ -114,6 +122,8 @@ Buka `/install` pada saat pertama kali untuk membuat akun admin. Setelah itu, lo
 | `ALLOWED_ORIGINS` | Tidak | — | Origin tambahan yang diizinkan (dipisah koma). |
 | `API_ALLOW_NO_ORIGIN` | Tidak | — | Set `1` untuk mengizinkan request API tanpa Origin/Referer. |
 | `CSP_POLICY` | Tidak | — | Kustomisasi header Content-Security-Policy. |
+| `FFMPEG_PATH` | Tidak | `ffmpeg` | Path binary ffmpeg (untuk remux sumber HLS). |
+| `REMUX_CACHE_DIR` | Tidak | `os.tmpdir()/jwplyr-remux` | Direktori cache hasil remux HLS. |
 
 ---
 
