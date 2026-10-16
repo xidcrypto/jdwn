@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { getSettings, saveSettings, normalizeDomains, normalizeLinks, normalizeCookies, type AppSettings } from '@/lib/settings';
+import { validateCookieProfiles } from '@/lib/cookies';
 
 export const runtime = 'nodejs';
 
@@ -32,7 +33,19 @@ export async function PUT(req: Request) {
   if (typeof body.vpnBlockEnabled === 'boolean') patch.vpnBlockEnabled = body.vpnBlockEnabled;
   if (typeof body.devGuardEnabled === 'boolean') patch.devGuardEnabled = body.devGuardEnabled;
   if (typeof body.ytdlpEnabled === 'boolean') patch.ytdlpEnabled = body.ytdlpEnabled;
-  if (body.ytdlpCookies !== undefined) patch.ytdlpCookies = normalizeCookies(body.ytdlpCookies);
+  if (body.ytdlpCookies !== undefined) {
+    const check = validateCookieProfiles(body.ytdlpCookies);
+    if (!check.valid) {
+      return NextResponse.json(
+        {
+          error: 'Cookies tidak valid: ' + check.errors.slice(0, 3).join(' '),
+          issues: check.errors,
+        },
+        { status: 400 },
+      );
+    }
+    patch.ytdlpCookies = normalizeCookies(body.ytdlpCookies);
+  }
   if (typeof body.ytdlpMaxHeight === 'number') patch.ytdlpMaxHeight = body.ytdlpMaxHeight;
 
   if (!Object.keys(patch).length) {

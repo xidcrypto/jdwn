@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { MAX_COOKIE_CHARS, repairCookieText } from './cookies';
 
 /** Kunci platform untuk cookies terpisah (yt-dlp memakai yang cocok domain). */
 export const COOKIE_PLATFORMS = ['youtube', 'instagram', 'tiktok', 'twitter', 'facebook', 'other'] as const;
@@ -51,8 +52,6 @@ function parseBool(v: string | undefined, def: boolean): boolean {
   return v === '1' || v === 'true' || v === 'on';
 }
 
-const MAX_COOKIE_CHARS = 50000;
-
 /** Normalisasi cookies: hanya platform yang dikenal, string non-kosong. */
 export function normalizeCookies(raw: unknown): CookieProfiles {
   const out: CookieProfiles = {};
@@ -60,10 +59,11 @@ export function normalizeCookies(raw: unknown): CookieProfiles {
     const obj = raw as Record<string, unknown>;
     for (const p of COOKIE_PLATFORMS) {
       const v = obj[p];
-      if (typeof v === 'string' && v.trim()) out[p] = v.slice(0, MAX_COOKIE_CHARS);
+      if (typeof v === 'string' && v.trim())
+        out[p] = repairCookieText(v).slice(0, MAX_COOKIE_CHARS);
     }
   } else if (typeof raw === 'string' && raw.trim()) {
-    out.other = raw.slice(0, MAX_COOKIE_CHARS);
+    out.other = repairCookieText(raw).slice(0, MAX_COOKIE_CHARS);
   }
   return out;
 }
