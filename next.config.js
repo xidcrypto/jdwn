@@ -38,11 +38,6 @@ const securityHeaders = [
 const nextConfig = {
   serverExternalPackages: ['@prisma/client', 'bcryptjs'],
   poweredByHeader: false,
-  async rewrites() {
-    // URL unduhan/streaming yang terlihat user: /d/<token> (rewrite internal,
-    // path /api tidak pernah muncul di browser).
-    return [{ source: '/d/:token', destination: '/api/public/download?token=:token' }];
-  },
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },
